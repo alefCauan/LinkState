@@ -5,7 +5,7 @@ FROM python:3.9-slim
 WORKDIR /app
 
 # Copy the host script
-COPY host.py .
+COPY  host/host.py .
 
 # Command to run the host script
 CMD ["python", "host.py"]

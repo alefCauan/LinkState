@@ -100,4 +100,7 @@ for edge in G.edges(data=True):
 with open("network_topology.json", "w") as f:
     json.dump(topology, f, indent=4)
 
+with open("router/network_topology.json", "w") as f:
+    json.dump(topology, f, indent=4)
+
 print("\nNetwork topology has been saved to 'network_topology.json'.")

@@ -56,9 +56,10 @@ for subnet in subnets:
                                   (edge["node1"] == router and edge["node2"] == host))
         docker_compose["services"][service_name] = {
             "build": {
-                "context": "./host",
-                "dockerfile": "Dockerfile"
+                "context": ".",  # Use project root as build context
+                "dockerfile": "host/Dockerfile"  # Specify the path to the Dockerfile
             },
+            "container_name":service_name,
             "networks": [subnet_name],
             "environment": [f"CONNECTED_TO={router}", f"WEIGHT_TO_ROUTER={weight_to_router}"]
         }
@@ -83,9 +84,10 @@ for subnet in subnets:
     
     docker_compose["services"][service_name] = {
         "build": {
-            "context": "./router",
-            "dockerfile": "Dockerfile"
+            "context": ".",  # Use project root as build context
+            "dockerfile": "router/Dockerfile"  # Specify the path to the Dockerfile
         },
+        "container_name": service_name,
         "networks": router_networks,
         "environment": env_vars
     }
@@ -94,4 +96,4 @@ for subnet in subnets:
 with open("docker-compose.yml", "w") as f:
     yaml.dump(docker_compose, f, sort_keys=False)
 
-print("docker-compose.yml file has been generated with build contexts (version field removed).")
+print("docker-compose.yml file has been generated with updated build contexts.")

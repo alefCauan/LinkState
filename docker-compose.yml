@@ -1,8 +1,9 @@
 services:
   h1:
     build:
-      context: ./host
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: host/Dockerfile
+    container_name: h1
     networks:
     - subnet_1
     environment:
@@ -10,68 +11,75 @@ services:
     - WEIGHT_TO_ROUTER=4
   h2:
     build:
-      context: ./host
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: host/Dockerfile
+    container_name: h2
     networks:
     - subnet_1
     environment:
     - CONNECTED_TO=R1
-    - WEIGHT_TO_ROUTER=4
+    - WEIGHT_TO_ROUTER=1
   r1:
     build:
-      context: ./router
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: router/Dockerfile
+    container_name: r1
     networks:
     - subnet_1
     - inter_router_r1_r2
     - inter_router_r1_r3
     environment:
     - CONNECTED_TO_SUBNET=subnet_1
-    - CONNECTED_TO_ROUTER_R2=8
-    - CONNECTED_TO_ROUTER_R3=4
+    - CONNECTED_TO_ROUTER_R2=2
+    - CONNECTED_TO_ROUTER_R3=9
   h3:
     build:
-      context: ./host
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: host/Dockerfile
+    container_name: h3
+    networks:
+    - subnet_2
+    environment:
+    - CONNECTED_TO=R2
+    - WEIGHT_TO_ROUTER=4
+  h4:
+    build:
+      context: .
+      dockerfile: host/Dockerfile
+    container_name: h4
     networks:
     - subnet_2
     environment:
     - CONNECTED_TO=R2
     - WEIGHT_TO_ROUTER=5
-  h4:
-    build:
-      context: ./host
-      dockerfile: Dockerfile
-    networks:
-    - subnet_2
-    environment:
-    - CONNECTED_TO=R2
-    - WEIGHT_TO_ROUTER=1
   r2:
     build:
-      context: ./router
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: router/Dockerfile
+    container_name: r2
     networks:
     - subnet_2
     - inter_router_r1_r2
     - inter_router_r2_r3
     environment:
     - CONNECTED_TO_SUBNET=subnet_2
-    - CONNECTED_TO_ROUTER_R1=8
-    - CONNECTED_TO_ROUTER_R3=8
+    - CONNECTED_TO_ROUTER_R1=2
+    - CONNECTED_TO_ROUTER_R3=9
   h5:
     build:
-      context: ./host
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: host/Dockerfile
+    container_name: h5
     networks:
     - subnet_3
     environment:
     - CONNECTED_TO=R3
-    - WEIGHT_TO_ROUTER=4
+    - WEIGHT_TO_ROUTER=1
   h6:
     build:
-      context: ./host
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: host/Dockerfile
+    container_name: h6
     networks:
     - subnet_3
     environment:
@@ -79,16 +87,17 @@ services:
     - WEIGHT_TO_ROUTER=5
   r3:
     build:
-      context: ./router
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: router/Dockerfile
+    container_name: r3
     networks:
     - subnet_3
     - inter_router_r1_r3
     - inter_router_r2_r3
     environment:
     - CONNECTED_TO_SUBNET=subnet_3
-    - CONNECTED_TO_ROUTER_R1=4
-    - CONNECTED_TO_ROUTER_R2=8
+    - CONNECTED_TO_ROUTER_R1=9
+    - CONNECTED_TO_ROUTER_R2=9
 networks:
   subnet_1:
     driver: bridge
