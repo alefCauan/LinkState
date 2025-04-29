@@ -67,33 +67,36 @@ for subnet in subnets:
     # Add router as a service
     service_name = router.lower()
     router_networks = [subnet_name]  # The subnet network
-    # Add inter-router networks
+    router_env = {}  # Use dictionary instead of list for environment variables
+    
+    # Add base subnet connection
+    router_env["CONNECTED_TO_SUBNET"] = subnet_name
+    
+    # Add inter-router networks and their weights
     for u, v, weight in router_edges:
-        if u == router or v == router:
+        if u == router:
             network_name = inter_router_networks[(u, v)]
             if network_name not in router_networks:
                 router_networks.append(network_name)
-    
-    # Add environment variables for weights to neighboring routers
-    env_vars = [f"CONNECTED_TO_SUBNET={subnet_name}"]
-    for u, v, weight in router_edges:
-        if u == router:
-            env_vars.append(f"CONNECTED_TO_ROUTER_{v}={weight}")
+            router_env[f"CONNECTED_TO_ROUTER_{v}"] = str(weight)
         elif v == router:
-            env_vars.append(f"CONNECTED_TO_ROUTER_{u}={weight}")
+            network_name = inter_router_networks[(u, v)]
+            if network_name not in router_networks:
+                router_networks.append(network_name)
+            router_env[f"CONNECTED_TO_ROUTER_{u}"] = str(weight)
     
     docker_compose["services"][service_name] = {
         "build": {
-            "context": ".",  # Use project root as build context
-            "dockerfile": "router/Dockerfile"  # Specify the path to the Dockerfile
+            "context": ".",
+            "dockerfile": "router/Dockerfile"
         },
         "container_name": service_name,
         "networks": router_networks,
-        "environment": env_vars
+        "environment": router_env  # Use the dictionary directly
     }
 
 # Step 6: Save the docker-compose.yml file
 with open("docker-compose.yml", "w") as f:
-    yaml.dump(docker_compose, f, sort_keys=False)
+    yaml.dump(docker_compose, f, default_flow_style=False, sort_keys=False)
 
 print("docker-compose.yml file has been generated with updated build contexts.")

@@ -8,13 +8,13 @@ import sys
 # Force unbuffered output
 sys.stdout.reconfigure(line_buffering=True)
 
-print("Router script started.")  # Debug: Confirm script starts
+print("Router script started.")
 
 # Step 1: Load the network topology
 try:
     with open("/app/network_topology.json", "r") as f:
         topology = json.load(f)
-        print("Successfully loaded network_topology.json")  # Debug
+        print("Successfully loaded network_topology.json")
 except FileNotFoundError:
     print("Error: network_topology.json not found in /app.")
     sys.exit(1)
@@ -85,59 +85,78 @@ class LSDB:
 
 # Step 3: Router logic with threading
 def receive_link_state_packets(lsdb):
-    print(f"{lsdb.router_id}: Receiving link state packets...")
-    while True:
-        print(f"{lsdb.router_id}: Still receiving...")  # Debug
-        time.sleep(10)
-        print(f"{lsdb.router_id}: Checking for topology updates...")
+    try:
+        print(f"{lsdb.router_id}: Receiving link state packets...")
+        while True:
+            print(f"{lsdb.router_id}: Still receiving...")
+            time.sleep(10)
+            print(f"{lsdb.router_id}: Checking for topology updates...")
+    except Exception as e:
+        print(f"{lsdb.router_id}: Receive thread failed with error: {e}")
+        sys.exit(1)
 
 def send_link_state_packets(lsdb):
-    print(f"{lsdb.router_id}: Sending link state packets...")
-    while True:
-        print(f"{lsdb.router_id}: Still sending...")  # Debug
-        time.sleep(10)
-        print(f"{lsdb.router_id}: Broadcasting LSDB...")
+    try:
+        print(f"{lsdb.router_id}: Sending link state packets...")
+        while True:
+            print(f"{lsdb.router_id}: Still sending...")
+            time.sleep(10)
+            print(f"{lsdb.router_id}: Broadcasting LSDB...")
+    except Exception as e:
+        print(f"{lsdb.router_id}: Send thread failed with error: {e}")
+        sys.exit(1)
+
+def get_router_id():
+    """Determine router ID from environment variables"""
+    # Get all environment variables
+    env_vars = os.environ
+    
+    # Find variables that start with CONNECTED_TO_ROUTER
+    router_connections = [var for var in env_vars if var.startswith('CONNECTED_TO_ROUTER_')]
+    
+    if not router_connections:
+        print("Error: No router connections found in environment variables")
+        sys.exit(1)
+    
+    # Example: CONNECTED_TO_ROUTER_R2=2 means this router has a connection to R2
+    # So if we see R2, we know we're not R2. By checking all connections,
+    # we can determine which router we are
+    possible_routers = {'R1', 'R2', 'R3'}
+    connected_routers = {conn.replace('CONNECTED_TO_ROUTER_', '') for conn in router_connections}
+    
+    # We are the router that's not in our connections
+    our_router = list(possible_routers - connected_routers)
+    
+    if len(our_router) != 1:
+        print(f"Error: Could not uniquely determine router ID. Found: {our_router}")
+        sys.exit(1)
+        
+    return our_router[0]
 
 def main():
-
+    # Determine router ID dynamically
+    router_id = get_router_id()
+    print(f"Determined router ID: {router_id}")
+    
+    # Initialize LSDB with router ID and topology
+    lsdb = LSDB(router_id, topology)
+    
+    # Start threads for receiving and sending packets
+    receive_thread = threading.Thread(target=receive_link_state_packets, args=(lsdb,))
+    send_thread = threading.Thread(target=send_link_state_packets, args=(lsdb,))
+    
+    receive_thread.daemon = True
+    send_thread.daemon = True
+    
+    receive_thread.start()
+    send_thread.start()
+    
+    # Main loop that runs Dijkstra periodically
     while True:
-        # Get router ID from the container name (e.g., "r1" -> "R1")
-        router_id = os.getenv("HOSTNAME", "").upper()
-        print(f"HOSTNAME from environment: {router_id}")  # Debug
-        if not router_id:
-            print("Warning: HOSTNAME environment variable not set.")
-            possible_names = ["R1", "R2", "R3"]
-            router_id = next((name for name in possible_names if name.lower() in os.getenv("HOSTNAME", "").lower()), None)
-            if not router_id:
-                print("Error: Router ID could not be determined.")
-                sys.exit(1)
-        if not router_id.startswith("R"):
-            print("Error: Router ID not found or invalid.")
-            sys.exit(1)
-
-        print(f"Starting router {router_id}...")
-
-        # Initialize the LSDB
-        lsdb = LSDB(router_id, topology)
-        print("LSDB initialized.")  # Debug
-
-        # Run Dijkstra's algorithm to compute shortest paths
-        lsdb.dijkstra()
-        lsdb.print_routes()
-
-        # Start threads for sending and receiving link state packets
-        print("Starting threads...")  # Debug
-        receive_thread = threading.Thread(target=receive_link_state_packets, args=(lsdb,))
-        send_thread = threading.Thread(target=send_link_state_packets, args=(lsdb,))
-        receive_thread.start()
-        send_thread.start()
-
-        print("Threads started.")  # Debug
-
-        # Keep the main thread alive
-        receive_thread.join()
-        send_thread.join()
-        print("Threads joined - this should not happen!")  # Debug: This line should never be reached
+        print(f"\n{router_id}: Calculating routes...")
+        lsdb.dijkstra()  # Calculate shortest paths
+        lsdb.print_routes()  # Print the current routing table
+        time.sleep(10)  # Wait before next calculation
 
 if __name__ == "__main__":
     try:

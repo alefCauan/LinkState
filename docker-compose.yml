@@ -29,9 +29,9 @@ services:
     - inter_router_r1_r2
     - inter_router_r1_r3
     environment:
-    - CONNECTED_TO_SUBNET=subnet_1
-    - CONNECTED_TO_ROUTER_R2=2
-    - CONNECTED_TO_ROUTER_R3=9
+      CONNECTED_TO_SUBNET: subnet_1
+      CONNECTED_TO_ROUTER_R2: '2'
+      CONNECTED_TO_ROUTER_R3: '9'
   h3:
     build:
       context: .
@@ -62,9 +62,9 @@ services:
     - inter_router_r1_r2
     - inter_router_r2_r3
     environment:
-    - CONNECTED_TO_SUBNET=subnet_2
-    - CONNECTED_TO_ROUTER_R1=2
-    - CONNECTED_TO_ROUTER_R3=9
+      CONNECTED_TO_SUBNET: subnet_2
+      CONNECTED_TO_ROUTER_R1: '2'
+      CONNECTED_TO_ROUTER_R3: '9'
   h5:
     build:
       context: .
@@ -95,9 +95,9 @@ services:
     - inter_router_r1_r3
     - inter_router_r2_r3
     environment:
-    - CONNECTED_TO_SUBNET=subnet_3
-    - CONNECTED_TO_ROUTER_R1=9
-    - CONNECTED_TO_ROUTER_R2=9
+      CONNECTED_TO_SUBNET: subnet_3
+      CONNECTED_TO_ROUTER_R1: '9'
+      CONNECTED_TO_ROUTER_R2: '9'
 networks:
   subnet_1:
     driver: bridge
