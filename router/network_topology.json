@@ -28,43 +28,37 @@
     "edges": [
         {
             "node1": "R1",
-            "node2": "H1",
-            "weight": 3
+            "node2": "H1"
         },
         {
             "node1": "R1",
-            "node2": "H2",
-            "weight": 3
+            "node2": "H2"
         },
         {
             "node1": "R1",
             "node2": "R2",
-            "weight": 3
-        },
-        {
-            "node1": "R2",
-            "node2": "H3",
-            "weight": 3
-        },
-        {
-            "node1": "R2",
-            "node2": "H4",
             "weight": 5
         },
         {
             "node1": "R2",
+            "node2": "H3"
+        },
+        {
+            "node1": "R2",
+            "node2": "H4"
+        },
+        {
+            "node1": "R2",
             "node2": "R3",
-            "weight": 9
+            "weight": 3
         },
         {
             "node1": "R3",
-            "node2": "H5",
-            "weight": 4
+            "node2": "H5"
         },
         {
             "node1": "R3",
-            "node2": "H6",
-            "weight": 1
+            "node2": "H6"
         }
     ]
 }

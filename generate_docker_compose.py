@@ -29,18 +29,34 @@ for subnet in subnets:
 router_edges = [(edge["node1"], edge["node2"], edge["weight"]) for edge in edges 
                 if edge["node1"].startswith("R") and edge["node2"].startswith("R")]
 inter_router_networks = {}
+
+# Substitua o network_ranges fixo por uma função que gera ranges dinamicamente
+def get_network_range(router_pair, base_network="172"):
+    """Generate a unique network range for each router pair"""
+    # Hash the router pair to get a unique number
+    pair_str = f"{router_pair[0]}_{router_pair[1]}"
+    pair_hash = hash(pair_str) & 0xFFFF  # Use apenas 16 bits do hash
+    second_octet = 21 + (pair_hash % 74)  # Limita de 172.21.0.0 até 172.94.0.0
+    return f"{base_network}.{second_octet}"
+
+# E então use assim no código:
 for idx, (u, v, weight) in enumerate(router_edges):
     network_name = f"inter_router_{u.lower()}_{v.lower()}"
     inter_router_networks[(u, v)] = network_name
     inter_router_networks[(v, u)] = network_name  # Bidirectional
+    
+    # Sort router names to get consistent network range
+    routers = tuple(sorted([u, v]))
+    base_ip = get_network_range(routers)
+    
     docker_compose["networks"][network_name] = {
         "driver": "bridge",
         "ipam": {
-            "config": [{"subnet": f"172.21.{idx+1}.0/24"}]
+            "config": [{"subnet": f"{base_ip}.0.0/24"}]
         }
     }
 
-# Step 5: Add services for hosts and routers
+# Step 5: Add services for hosts and routers (modified version)
 for subnet in subnets:
     subnet_id = subnet["subnet_id"]
     subnet_name = f"subnet_{subnet_id}"
@@ -50,21 +66,18 @@ for subnet in subnets:
     # Add hosts as services
     for host in hosts:
         service_name = host.lower()
-        # Find the weight to the router
-        weight_to_router = next(edge["weight"] for edge in edges 
-                               if (edge["node1"] == host and edge["node2"] == router) or 
-                                  (edge["node1"] == router and edge["node2"] == host))
+        
         docker_compose["services"][service_name] = {
             "build": {
-                "context": ".",  # Use project root as build context
-                "dockerfile": "host/Dockerfile"  # Specify the path to the Dockerfile
+                "context": ".",
+                "dockerfile": "host/Dockerfile"
             },
-            "container_name":service_name,
+            "container_name": service_name,
             "networks": [subnet_name],
-            "environment": [f"CONNECTED_TO={router}", f"WEIGHT_TO_ROUTER={weight_to_router}"]
+            "environment": [f"CONNECTED_TO={router}"]
         }
 
-    # Add router as a service
+     # Add router as a service
     service_name = router.lower()
     router_networks = [subnet_name]  # The subnet network
     router_env = {}  # Use dictionary instead of list for environment variables

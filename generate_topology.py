@@ -22,9 +22,9 @@ for i in range(num_subnets):
     G.add_node(host1, type="host")
     G.add_node(host2, type="host")
     
-    # Add edges within the subnet with weights (hosts to router)
-    G.add_edge(host1, router, weight=random.randint(1, 5))
-    G.add_edge(host2, router, weight=random.randint(1, 5))
+    # Add edges within the subnet (hosts to router, sem peso)
+    G.add_edge(host1, router)
+    G.add_edge(host2, router)
     
     # Store subnet info
     subnet["router"] = router
@@ -62,7 +62,8 @@ for node in G.nodes(data=True):
 plt.figure(figsize=(10, 8))
 nx.draw_networkx_nodes(G, pos, node_color=node_colors, node_size=500)
 nx.draw_networkx_edges(G, pos)
-edge_labels = nx.get_edge_attributes(G, "weight")
+# Exibir apenas labels de peso nas arestas entre routers
+edge_labels = {(u, v): d["weight"] for u, v, d in G.edges(data=True) if "weight" in d}
 nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
 nx.draw_networkx_labels(G, pos)
 plt.title("Connected Network Graph with Subnets, Hosts, and Routers (Edge Weights Shown)")
@@ -89,12 +90,20 @@ for i, subnet in enumerate(subnets):
 
 # Save edges and weights
 for edge in G.edges(data=True):
-    print(f"{edge[0]} <-> {edge[1]} : Weight = {edge[2]['weight']}")
-    topology["edges"].append({
-        "node1": edge[0],
-        "node2": edge[1],
-        "weight": edge[2]["weight"]
-    })
+    if "weight" in edge[2]:
+        print(f"{edge[0]} <-> {edge[1]} : Weight = {edge[2]['weight']}")
+        topology["edges"].append({
+            "node1": edge[0],
+            "node2": edge[1],
+            "weight": edge[2]["weight"]
+        })
+    else:
+        print(f"{edge[0]} <-> {edge[1]}")
+        topology["edges"].append({
+            "node1": edge[0],
+            "node2": edge[1]
+            # sem campo weight
+        })
 
 # Step 8: Save the topology to a JSON file
 with open("network_topology.json", "w") as f:
