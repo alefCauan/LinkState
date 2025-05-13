@@ -53,12 +53,22 @@
         {
             "node1": "R1",
             "node2": "R2",
-            "weight": 3
+            "weight": 5
+        },
+        {
+            "node1": "R1",
+            "node2": "R3",
+            "weight": 9
+        },
+        {
+            "node1": "R1",
+            "node2": "R4",
+            "weight": 6
         },
         {
             "node1": "R1",
             "node2": "R5",
-            "weight": 10
+            "weight": 6
         },
         {
             "node1": "R2",
@@ -71,7 +81,12 @@
         {
             "node1": "R2",
             "node2": "R3",
-            "weight": 6
+            "weight": 10
+        },
+        {
+            "node1": "R2",
+            "node2": "R4",
+            "weight": 3
         },
         {
             "node1": "R3",
@@ -84,7 +99,7 @@
         {
             "node1": "R3",
             "node2": "R4",
-            "weight": 5
+            "weight": 8
         },
         {
             "node1": "R4",
@@ -97,7 +112,7 @@
         {
             "node1": "R4",
             "node2": "R5",
-            "weight": 7
+            "weight": 4
         },
         {
             "node1": "R5",

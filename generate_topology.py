@@ -67,6 +67,8 @@ edge_labels = {(u, v): d["weight"] for u, v, d in G.edges(data=True) if "weight"
 nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
 nx.draw_networkx_labels(G, pos)
 plt.title("Connected Network Graph with Subnets, Hosts, and Routers (Edge Weights Shown)")
+#salvando a imagem 
+plt.savefig("topologias/network_topology.png")
 plt.show()
 
 # Step 7: Print and save the network structure
@@ -105,10 +107,7 @@ for edge in G.edges(data=True):
         })
 
 # Step 8: Save the topology to a JSON file
-with open("network_topology.json", "w") as f:
-    json.dump(topology, f, indent=4)
-
-with open("router/network_topology.json", "w") as f:
+with open("topologias/network_topology.json", "w") as f:
     json.dump(topology, f, indent=4)
 
 print("\nNetwork topology has been saved to 'network_topology.json'.")

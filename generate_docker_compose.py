@@ -2,7 +2,7 @@ import json
 import yaml
 
 # Step 1: Read the network topology from the JSON file
-with open("network_topology.json", "r") as f:
+with open("topologias/network_topology.json", "r") as f:
     topology = json.load(f)
 
 subnets = topology["subnets"]
