@@ -18,17 +18,13 @@ print("Router script started.")
 # Step 1: Create a print lock for thread-safe logging
 print_lock = threading.Lock()
 
-def print2(string: str):
-    with print_lock:
-        print(f"[{router_id}] {string}")
-
 # Step 2: Define the LSDB class
 class LSDB:
     def __init__(self, router_id: str, neighbors_ip: dict):
         self.router_id = router_id
-        self.neighbors_ip = neighbors_ip  # Recognized neighbors (bidirectional) with their IPs
-        self.tabela = {}  # Link State Database (LSDB)
-        self.roteamento = {}  # Routing table (destination -> next hop)
+        self.neighbors_ip = neighbors_ip
+        self.tabela = {}
+        self.roteamento = {}
         self.tempo_inicio = time.time()
         self.quantidade_roteadores = 0
 
@@ -45,22 +41,18 @@ class LSDB:
         sequence_number = pacote["sequence_number"]
         entrada = self.tabela.get(router_id)
 
-        # Ignore outdated or duplicate LSAs
         if entrada and sequence_number <= entrada["sequence_number"]:
             return False
 
-        # Update the LSDB with the new LSA
         self.tabela[router_id] = self.criar_entrada(
             sequence_number, pacote["timestamp"], pacote["addresses"], pacote["links"]
         )
 
-        # Check for new routers in the links
         for vizinho in pacote["links"].keys():
             if vizinho not in self.tabela:
-                print2(f"[LSDB] Discovered new router: {vizinho}")
+                print(f"[LSDB] Discovered new router: {vizinho}")
                 self.tabela[vizinho] = self.criar_entrada(-1, 0, [], {})
 
-        # Update convergence tracking
         quantidade_roteadores = len(self.tabela.keys())
         if quantidade_roteadores > self.quantidade_roteadores:
             if quantidade_roteadores == (len(self.roteamento) + 1):
@@ -68,14 +60,13 @@ class LSDB:
                 tempo_convergencia = time.time() - self.tempo_inicio
                 data_formatada = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
                 try:
-                    with open("convergencia.txt", "w") as file:
+                    with open("/app/convergencia.txt", "a") as file:
                         file.write(
                             f"[{data_formatada}] {self.router_id}: {tempo_convergencia:.2f} seconds [{quantidade_roteadores} routers]\n"
                         )
                 except Exception as e:
-                    print2(f"[ERROR] Failed to write convergence time: {e}")
+                    print(f"[ERROR] Failed to write convergence time: {e}")
 
-        # Compute shortest paths and update routing table
         caminhos = self.dijkstra()
         self.atualizar_proximo_pulo(caminhos)
         self.atualizar_rotas()
@@ -109,7 +100,7 @@ class LSDB:
                 pulo = destino
                 while pulo is not None and caminhos[pulo] != self.router_id:
                     pulo = caminhos[pulo]
-                if pulo is not None:  # Ensure there's a path
+                if pulo is not None:
                     self.roteamento[destino] = pulo
         self.roteamento = dict(sorted(self.roteamento.items()))
 
@@ -117,16 +108,16 @@ class LSDB:
         for roteador_destino, roteador_gateway in list(self.roteamento.items()):
             if roteador_destino != self.router_id:
                 if roteador_gateway not in self.neighbors_ip:
-                    print2(f"[LSDB] Ignoring route to {roteador_destino} via {roteador_gateway}: gateway not recognized yet")
+                    print(f"[LSDB] Ignoring route to {roteador_destino} via {roteador_gateway}: gateway not recognized yet")
                     continue
                 for ip_destino in self.tabela[roteador_destino]["addresses"]:
                     ip_gateway = self.neighbors_ip[roteador_gateway]
                     comando = ["ip", "route", "replace", ip_destino, "via", ip_gateway]
                     try:
                         subprocess.run(comando, check=True)
-                        print2(f"Route added: {ip_destino} -> {ip_gateway} [{roteador_gateway}]")
+                        print(f"Route added: {ip_destino} -> {ip_gateway} [{roteador_gateway}]")
                     except subprocess.CalledProcessError as e:
-                        print2(f"[ERROR] Failed to add route: {comando} -> {e} ({self.router_id} -> {roteador_gateway})")
+                        print(f"[ERROR] Failed to add route: {comando} -> {e} ({self.router_id} -> {roteador_gateway})")
 
 # Step 3: Define the HelloSender class
 class HelloSender:
@@ -134,7 +125,7 @@ class HelloSender:
         self.router_id = router_id
         self.interfaces = interfaces
         self.neighbors_detected = neighbors_detected
-        self.interval = 5  # Send HELLO every 5 seconds
+        self.interval = 5
 
     def send_hello(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -150,9 +141,9 @@ class HelloSender:
                 if "broadcast" in interface:
                     try:
                         sock.sendto(packet_data, (interface["broadcast"], 5000))
-                        print2(f"Sent HELLO to {interface['broadcast']}")
+                        print(f"Sent HELLO to {interface['broadcast']}")
                     except Exception as e:
-                        print2(f"[ERROR] Failed to send HELLO to {interface['broadcast']}: {e}")
+                        print(f"[ERROR] Failed to send HELLO to {interface['broadcast']}: {e}")
             time.sleep(self.interval)
 
     def start(self):
@@ -168,7 +159,7 @@ class LSASender:
         self.interfaces = interfaces
         self.lsdb = lsdb
         self.sequence_number = 0
-        self.interval = 10  # Send LSA every 10 seconds
+        self.interval = 10
 
     def send_lsa(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -190,9 +181,9 @@ class LSASender:
                 if "broadcast" in interface:
                     try:
                         sock.sendto(packet_data, (interface["broadcast"], 5000))
-                        print2(f"Sent LSA to {interface['broadcast']}")
+                        print(f"Sent LSA to {interface['broadcast']}")
                     except Exception as e:
-                        print2(f"[ERROR] Failed to send LSA to {interface['broadcast']}: {e}")
+                        print(f"[ERROR] Failed to send LSA to {interface['broadcast']}: {e}")
             time.sleep(self.interval)
 
     def forward_to_neighbors(self, packet: dict, sender_ip: str):
@@ -203,9 +194,9 @@ class LSASender:
             if "broadcast" in interface:
                 try:
                     sock.sendto(packet_data, (interface["broadcast"], 5000))
-                    print2(f"Forwarded LSA from {packet['router_id']} to {interface['broadcast']}")
+                    print(f"Forwarded LSA from {packet['router_id']} to {interface['broadcast']}")
                 except Exception as e:
-                    print2(f"[ERROR] Failed to forward LSA to {interface['broadcast']}: {e}")
+                    print(f"[ERROR] Failed to forward LSA to {interface['broadcast']}: {e}")
 
     def start(self):
         thread = threading.Thread(target=self.send_lsa, daemon=True)
@@ -227,7 +218,7 @@ class NeighborManager:
         if self.router_id in known_neighbors and sender_id not in self.neighbors_recognized:
             self.neighbors_recognized[sender_id] = sender_ip
             self.lsa_sender.start()
-            print2(f"Recognized bidirectional neighbor: {sender_id} at {sender_ip}")
+            print(f"Recognized bidirectional neighbor: {sender_id} at {sender_ip}")
 
     def process_lsa(self, packet: dict, sender_ip: str):
         valid_packet = self.lsdb.atualizar(packet)
@@ -235,10 +226,9 @@ class NeighborManager:
             self.lsa_sender.forward_to_neighbors(packet, sender_ip)
 
     def get_cost(self, router_id: str, neighbor_id: str) -> int:
-        # Map your environment variables to the format expected by the working implementation
         cost = os.getenv(f"CONNECTED_TO_ROUTER_{neighbor_id}")
         if cost is None:
-            cost = 1  # Default cost if not specified
+            cost = 1
         return int(cost)
 
 # Step 6: Define the Router class
@@ -275,6 +265,33 @@ class Router:
                             interfaces_list.append({"address": f"{rede.network_address}/24"})
         return interfaces_list
 
+    def send_data_packet(self, destination_id: str, message: str):
+        """Send a data packet to a specific destination router."""
+        if destination_id not in self.lsdb.roteamento:
+            print(f"No route to destination {destination_id}")
+            return
+
+        next_hop = self.lsdb.roteamento[destination_id]
+        if next_hop not in self.neighbors_recognized:
+            print(f"Next hop {next_hop} not recognized")
+            return
+
+        packet = {
+            "type": "DATA",
+            "router_id": self.router_id,
+            "destination": destination_id,
+            "message": message,
+            "timestamp": time.time()
+        }
+
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            next_hop_ip = self.neighbors_recognized[next_hop]
+            sock.sendto(json.dumps(packet).encode("utf-8"), (next_hop_ip, self.port))
+            print(f"Sent DATA packet to {destination_id} via {next_hop} [{next_hop_ip}]")
+        except Exception as e:
+            print(f"Error sending DATA packet: {e}")
+
     def receive_packets(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.bind(("0.0.0.0", self.port))
@@ -287,20 +304,42 @@ class Router:
                 sender_id = packet.get("router_id")
                 if sender_id != self.router_id:
                     sender_ip = addr[0]
-                    print2(f"Received {packet_type} packet from {sender_ip} [{sender_id}]")
+                    print(f"Received {packet_type} packet from {sender_ip} [{sender_id}]")
                     if packet_type == "HELLO":
                         self.neighbor_manager.process_hello(packet, sender_ip)
                     elif packet_type == "LSA":
                         self.neighbor_manager.process_lsa(packet, sender_ip)
+                    elif packet_type == "DATA":
+                        destination_id = packet.get("destination")
+                        message = packet.get("message")
+                        print(f"Received DATA packet for {destination_id} with message: {message}")
+                        if destination_id != self.router_id:
+                            # Forward the packet to the next hop if not the destination
+                            self.send_data_packet(destination_id, message)
+                        else:
+                            print(f"DATA packet reached destination {self.router_id}: {message}")
             except Exception as e:
-                print2(f"Error receiving packet: {e}")
+                print(f"Error receiving packet: {e}")
 
     def start(self):
         thread = threading.Thread(target=self.receive_packets, daemon=True)
         thread.start()
         self.hello_sender.start()
-        while True:
-            time.sleep(1)
+        
+        # Wait for network convergence (e.g., 10 seconds)
+        time.sleep(10)
+        
+        # Periodically send test data packets to known routers
+        destinations = [rid for rid in self.lsdb.roteamento.keys() if rid != self.router_id]
+        if destinations:
+            while True:
+                for dest in destinations:
+                    self.send_data_packet(dest, f"Test message from {self.router_id} to {dest}")
+                    time.sleep(5)  # Send a packet every 5 seconds per destination
+        else:
+            print("No destinations available for data packet testing")
+            while True:
+                time.sleep(1)  # Keep the router running if no routes
 
 # Step 7: Main execution
 if __name__ == "__main__":
@@ -309,8 +348,8 @@ if __name__ == "__main__":
         print("Error: CONTAINER_NAME environment variable not found")
         sys.exit(1)
 
-    # Set router_id for print2 function
+    # Set router_id for print function
     router_id = router_id
-    print2("Starting router...")
+    print("Starting router...")
     router = Router(router_id)
     router.start()
