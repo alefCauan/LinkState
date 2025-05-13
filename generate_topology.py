@@ -7,7 +7,7 @@ import json
 G = nx.Graph()
 
 # Step 2: Define the number of subnets (using 3 subnets as an example)
-num_subnets = 3
+num_subnets = 5
 subnets = []
 
 # Step 3: Create subnets (each with 2 hosts and 1 router)
@@ -102,7 +102,6 @@ for edge in G.edges(data=True):
         topology["edges"].append({
             "node1": edge[0],
             "node2": edge[1]
-            # sem campo weight
         })
 
 # Step 8: Save the topology to a JSON file

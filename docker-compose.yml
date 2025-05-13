@@ -25,9 +25,12 @@ services:
     networks:
     - subnet_1
     - inter_router_r1_r2
+    - inter_router_r1_r5
     environment:
       CONNECTED_TO_SUBNET: subnet_1
-      CONNECTED_TO_ROUTER_R2: '5'
+      CONNECTED_TO_ROUTER_R2: '3'
+      CONNECTED_TO_ROUTER_R5: '10'
+      CONTAINER_NAME: r1
   h3:
     build:
       context: .
@@ -57,8 +60,9 @@ services:
     - inter_router_r2_r3
     environment:
       CONNECTED_TO_SUBNET: subnet_2
-      CONNECTED_TO_ROUTER_R1: '5'
-      CONNECTED_TO_ROUTER_R3: '3'
+      CONNECTED_TO_ROUTER_R1: '3'
+      CONNECTED_TO_ROUTER_R3: '6'
+      CONTAINER_NAME: r2
   h5:
     build:
       context: .
@@ -85,9 +89,76 @@ services:
     networks:
     - subnet_3
     - inter_router_r2_r3
+    - inter_router_r3_r4
     environment:
       CONNECTED_TO_SUBNET: subnet_3
-      CONNECTED_TO_ROUTER_R2: '3'
+      CONNECTED_TO_ROUTER_R2: '6'
+      CONNECTED_TO_ROUTER_R4: '5'
+      CONTAINER_NAME: r3
+  h7:
+    build:
+      context: .
+      dockerfile: host/Dockerfile
+    container_name: h7
+    networks:
+    - subnet_4
+    environment:
+    - CONNECTED_TO=R4
+  h8:
+    build:
+      context: .
+      dockerfile: host/Dockerfile
+    container_name: h8
+    networks:
+    - subnet_4
+    environment:
+    - CONNECTED_TO=R4
+  r4:
+    build:
+      context: .
+      dockerfile: router/Dockerfile
+    container_name: r4
+    networks:
+    - subnet_4
+    - inter_router_r3_r4
+    - inter_router_r4_r5
+    environment:
+      CONNECTED_TO_SUBNET: subnet_4
+      CONNECTED_TO_ROUTER_R3: '5'
+      CONNECTED_TO_ROUTER_R5: '7'
+      CONTAINER_NAME: r4
+  h9:
+    build:
+      context: .
+      dockerfile: host/Dockerfile
+    container_name: h9
+    networks:
+    - subnet_5
+    environment:
+    - CONNECTED_TO=R5
+  h10:
+    build:
+      context: .
+      dockerfile: host/Dockerfile
+    container_name: h10
+    networks:
+    - subnet_5
+    environment:
+    - CONNECTED_TO=R5
+  r5:
+    build:
+      context: .
+      dockerfile: router/Dockerfile
+    container_name: r5
+    networks:
+    - subnet_5
+    - inter_router_r1_r5
+    - inter_router_r4_r5
+    environment:
+      CONNECTED_TO_SUBNET: subnet_5
+      CONNECTED_TO_ROUTER_R1: '10'
+      CONNECTED_TO_ROUTER_R4: '7'
+      CONTAINER_NAME: r5
 networks:
   subnet_1:
     driver: bridge
@@ -104,13 +175,38 @@ networks:
     ipam:
       config:
       - subnet: 172.20.3.0/24
+  subnet_4:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 172.20.4.0/24
+  subnet_5:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 172.20.5.0/24
   inter_router_r1_r2:
     driver: bridge
     ipam:
       config:
-      - subnet: 172.85.0.0/24
+      - subnet: 172.40.0.0/24
+  inter_router_r1_r5:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 172.48.0.0/24
   inter_router_r2_r3:
     driver: bridge
     ipam:
       config:
-      - subnet: 172.82.0.0/24
+      - subnet: 172.79.0.0/24
+  inter_router_r3_r4:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 172.29.0.0/24
+  inter_router_r4_r5:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 172.71.0.0/24

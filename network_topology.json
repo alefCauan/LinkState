@@ -23,6 +23,22 @@
                 "H5",
                 "H6"
             ]
+        },
+        {
+            "subnet_id": 4,
+            "router": "R4",
+            "hosts": [
+                "H7",
+                "H8"
+            ]
+        },
+        {
+            "subnet_id": 5,
+            "router": "R5",
+            "hosts": [
+                "H9",
+                "H10"
+            ]
         }
     ],
     "edges": [
@@ -37,7 +53,12 @@
         {
             "node1": "R1",
             "node2": "R2",
-            "weight": 5
+            "weight": 3
+        },
+        {
+            "node1": "R1",
+            "node2": "R5",
+            "weight": 10
         },
         {
             "node1": "R2",
@@ -50,7 +71,7 @@
         {
             "node1": "R2",
             "node2": "R3",
-            "weight": 3
+            "weight": 6
         },
         {
             "node1": "R3",
@@ -59,6 +80,32 @@
         {
             "node1": "R3",
             "node2": "H6"
+        },
+        {
+            "node1": "R3",
+            "node2": "R4",
+            "weight": 5
+        },
+        {
+            "node1": "R4",
+            "node2": "H7"
+        },
+        {
+            "node1": "R4",
+            "node2": "H8"
+        },
+        {
+            "node1": "R4",
+            "node2": "R5",
+            "weight": 7
+        },
+        {
+            "node1": "R5",
+            "node2": "H9"
+        },
+        {
+            "node1": "R5",
+            "node2": "H10"
         }
     ]
 }

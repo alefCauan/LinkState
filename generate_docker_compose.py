@@ -98,6 +98,9 @@ for subnet in subnets:
                 router_networks.append(network_name)
             router_env[f"CONNECTED_TO_ROUTER_{u}"] = str(weight)
     
+    # Add container name to environment variables
+    router_env["CONTAINER_NAME"] = service_name
+    
     docker_compose["services"][service_name] = {
         "build": {
             "context": ".",
