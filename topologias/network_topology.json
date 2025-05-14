@@ -44,83 +44,83 @@
     "edges": [
         {
             "node1": "R1",
-            "node2": "H1"
+            "node2": "H1",
+            "weight": null
         },
         {
             "node1": "R1",
-            "node2": "H2"
+            "node2": "H2",
+            "weight": null
         },
         {
             "node1": "R1",
             "node2": "R2",
-            "weight": 5
-        },
-        {
-            "node1": "R1",
-            "node2": "R3",
-            "weight": 9
-        },
-        {
-            "node1": "R1",
-            "node2": "R4",
-            "weight": 6
+            "weight": 4
         },
         {
             "node1": "R1",
             "node2": "R5",
-            "weight": 6
+            "weight": 9
         },
         {
             "node1": "R2",
-            "node2": "H3"
+            "node2": "H3",
+            "weight": null
         },
         {
             "node1": "R2",
-            "node2": "H4"
+            "node2": "H4",
+            "weight": null
         },
         {
             "node1": "R2",
             "node2": "R3",
-            "weight": 10
-        },
-        {
-            "node1": "R2",
-            "node2": "R4",
             "weight": 3
         },
         {
             "node1": "R3",
-            "node2": "H5"
+            "node2": "H5",
+            "weight": null
         },
         {
             "node1": "R3",
-            "node2": "H6"
+            "node2": "H6",
+            "weight": null
         },
         {
             "node1": "R3",
             "node2": "R4",
-            "weight": 8
+            "weight": 7
+        },
+        {
+            "node1": "R3",
+            "node2": "R5",
+            "weight": 1
         },
         {
             "node1": "R4",
-            "node2": "H7"
+            "node2": "H7",
+            "weight": null
         },
         {
             "node1": "R4",
-            "node2": "H8"
+            "node2": "H8",
+            "weight": null
         },
         {
             "node1": "R4",
             "node2": "R5",
-            "weight": 4
+            "weight": 9
         },
         {
             "node1": "R5",
-            "node2": "H9"
+            "node2": "H9",
+            "weight": null
         },
         {
             "node1": "R5",
-            "node2": "H10"
+            "node2": "H10",
+            "weight": null
         }
     ]
 }

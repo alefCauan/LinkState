@@ -23,10 +23,10 @@ class LSDB:
     Attributes:
         __router_id (str): The identifier of the router.
         __neighbors_ip (dict): Mapping of neighbor router IDs to their IP addresses.
-        __tabela (dict): The link-state database storing router entries.
-        __roteamento (dict): Routing table mapping destinations to next hops.
+        __table (dict): The link-state database storing router entries.
+        __routing (dict): Routing table mapping destinations to next hops.
         __tempo_inicio (float): Timestamp when the router started (for convergence timing).
-        __quantidade_roteadores (int): Number of known routers in the network.
+        __router_quant (int): Number of known routers in the network.
     """
 
     def __init__(self, router_id: str, neighbors_ip: dict) -> None:
@@ -39,12 +39,12 @@ class LSDB:
         """
         self.__router_id = router_id
         self.__neighbors_ip = neighbors_ip
-        self.__tabela = {}
-        self.__roteamento = {}
+        self.__table = {}
+        self.__routing = {}
         self.__tempo_inicio = time.time()
-        self.__quantidade_roteadores = 0
+        self.__router_quant = 0
 
-    def __criar_entrada(self, sequence_number: int, timestamp: float, addresses: list, links: dict) -> dict:
+    def __create_entry(self, sequence_number: int, timestamp: float, addresses: list, links: dict) -> dict:
         """
         Create an entry for the link-state database.
 
@@ -64,7 +64,7 @@ class LSDB:
             "links": links,
         }
 
-    def atualizar(self, pacote: dict) -> bool:
+    def update_lsdb(self, pacote: dict) -> bool:
         """
         Update the LSDB with a new LSA packet and recalculate routes.
 
@@ -76,37 +76,37 @@ class LSDB:
         """
         router_id = pacote["router_id"]
         sequence_number = pacote["sequence_number"]
-        entrada = self.__tabela.get(router_id)
+        entrada = self.__table.get(router_id)
 
         if entrada and sequence_number <= entrada["sequence_number"]:
             return False
 
-        self.__tabela[router_id] = self.__criar_entrada(
+        self.__table[router_id] = self.__create_entry(
             sequence_number, pacote["timestamp"], pacote["addresses"], pacote["links"]
         )
 
         for vizinho in pacote["links"].keys():
-            if vizinho not in self.__tabela:
+            if vizinho not in self.__table:
                 print(f"[LSDB] Discovered new router: {vizinho}")
-                self.__tabela[vizinho] = self.__criar_entrada(-1, 0, [], {})
+                self.__table[vizinho] = self.__create_entry(-1, 0, [], {})
 
-        quantidade_roteadores = len(self.__tabela.keys())
-        if quantidade_roteadores > self.__quantidade_roteadores:
-            if quantidade_roteadores == (len(self.__roteamento) + 1):
-                self.__quantidade_roteadores = quantidade_roteadores
+        router_quantity = len(self.__table.keys())
+        if router_quantity > self.__router_quant:
+            if router_quantity == (len(self.__routing) + 1):
+                self.__router_quant = router_quantity
                 tempo_convergencia = time.time() - self.__tempo_inicio
                 data_formatada = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
                 try:
                     with open("/app/convergencia.txt", "a") as file:
                         file.write(
-                            f"[{data_formatada}] {self.__router_id}: {tempo_convergencia:.2f} seconds [{quantidade_roteadores} routers]\n"
+                            f"[{data_formatada}] {self.__router_id}: {tempo_convergencia:.2f} seconds [{router_quantity} routers]\n"
                         )
                 except Exception as e:
                     print(f"[ERROR] Failed to write convergence time: {e}")
 
-        caminhos = self.__dijkstra()
-        self.__atualizar_proximo_pulo(caminhos)
-        self.__atualizar_rotas()
+        paths = self.__dijkstra()
+        self.__update_lsdb_proximo_pulo(paths)
+        self.__update_lsdb_routes()
         return True
 
     def __dijkstra(self) -> dict:
@@ -116,9 +116,9 @@ class LSDB:
         Returns:
             dict: A dictionary mapping each router to its predecessor in the shortest path.
         """
-        distances = {router: float("infinity") for router in self.__tabela}
+        distances = {router: float("infinity") for router in self.__table}
         distances[self.__router_id] = 0
-        predecessors = {router: None for router in self.__tabela}
+        predecessors = {router: None for router in self.__table}
         pq = [(0, self.__router_id)]
         visited = set()
 
@@ -127,7 +127,7 @@ class LSDB:
             if current_router in visited:
                 continue
             visited.add(current_router)
-            for neighbor, weight in self.__tabela[current_router]["links"].items():
+            for neighbor, weight in self.__table[current_router]["links"].items():
                 distance = current_distance + weight
                 if distance < distances[neighbor]:
                     distances[neighbor] = distance
@@ -136,40 +136,40 @@ class LSDB:
         
         return predecessors
 
-    def __atualizar_proximo_pulo(self, caminhos: dict) -> None:
+    def __update_lsdb_proximo_pulo(self, paths: dict) -> None:
         """
         Update the routing table with next-hop information based on shortest paths.
 
         Args:
-            caminhos (dict): Dictionary mapping routers to their predecessors in shortest paths.
+            paths (dict): Dictionary mapping routers to their predecessors in shortest paths.
         """
-        self.__roteamento = {}
-        for destino in caminhos.keys():
+        self.__routing = {}
+        for destino in paths.keys():
             if destino != self.__router_id:
                 pulo = destino
-                while pulo is not None and caminhos[pulo] != self.__router_id:
-                    pulo = caminhos[pulo]
+                while pulo is not None and paths[pulo] != self.__router_id:
+                    pulo = paths[pulo]
                 if pulo is not None:
-                    self.__roteamento[destino] = pulo
-        self.__roteamento = dict(sorted(self.__roteamento.items()))
+                    self.__routing[destino] = pulo
+        self.__routing = dict(sorted(self.__routing.items()))
 
-    def __atualizar_rotas(self) -> None:
+    def __update_lsdb_routes(self) -> None:
         """
         Update the system's routing table using the `ip route` command based on the routing table.
         """
-        for roteador_destino, roteador_gateway in list(self.__roteamento.items()):
-            if roteador_destino != self.__router_id:
-                if roteador_gateway not in self.__neighbors_ip:
-                    print(f"[LSDB] Ignoring route to {roteador_destino} via {roteador_gateway}: gateway not recognized yet")
+        for router_destiny, router_gateway in list(self.__routing.items()):
+            if router_destiny != self.__router_id:
+                if router_gateway not in self.__neighbors_ip:
+                    print(f"[LSDB] Ignoring route to {router_destiny} via {router_gateway}: gateway not recognized yet")
                     continue
-                for ip_destino in self.__tabela[roteador_destino]["addresses"]:
-                    ip_gateway = self.__neighbors_ip[roteador_gateway]
-                    comando = ["ip", "route", "replace", ip_destino, "via", ip_gateway]
+                for ip_destiny in self.__table[router_destiny]["addresses"]:
+                    ip_gateway = self.__neighbors_ip[router_gateway]
+                    command = ["ip", "route", "replace", ip_destiny, "via", ip_gateway]
                     try:
-                        subprocess.run(comando, check=True)
-                        print(f"Route added: {ip_destino} -> {ip_gateway} [{roteador_gateway}]")
+                        subprocess.run(command, check=True)
+                        print(f"Route added: {ip_destiny} -> {ip_gateway} [{router_gateway}]")
                     except subprocess.CalledProcessError as e:
-                        print(f"[ERROR] Failed to add route: {comando} -> {e} ({self.__router_id} -> {roteador_gateway})")
+                        print(f"[ERROR] Failed to add route: {command} -> {e} ({self.__router_id} -> {router_gateway})")
 
 class HelloSender:
     """
@@ -336,8 +336,8 @@ class NeighborManager:
         self.__router_id = router_id
         self.__lsa_sender = lsa_sender
         self.__lsdb = lsdb
-        self.__neighbors_detected = lsa_sender.__neighbors_cost
-        self.__neighbors_recognized = lsa_sender.__neighbors_ip
+        self.__neighbors_detected = lsa_sender._LSASender__neighbors_cost  
+        self.__neighbors_recognized = lsa_sender._LSASender__neighbors_ip  
 
     def process_hello(self, packet: dict, sender_ip: str) -> None:
         """
@@ -363,7 +363,7 @@ class NeighborManager:
             packet (dict): The LSA packet containing routing information.
             sender_ip (str): The IP address of the sender.
         """
-        valid_packet = self.__lsdb.atualizar(packet)
+        valid_packet = self.__lsdb.update_lsdb(packet)
         if valid_packet:
             self.__lsa_sender.forward_to_neighbors(packet, sender_ip)
 
@@ -454,11 +454,11 @@ class Router:
             destination_id (str): The identifier of the destination router.
             message (str): The message to send.
         """
-        if destination_id not in self.__lsdb._LSDB__roteamento:
+        if destination_id not in self.__lsdb._LSDB__routing:
             print(f"No route to destination {destination_id}")
             return
 
-        next_hop = self.__lsdb._LSDB__roteamento[destination_id]
+        next_hop = self.__lsdb._LSDB__routing[destination_id]
         if next_hop not in self.__neighbors_recognized:
             print(f"Next hop {next_hop} not recognized")
             return
@@ -520,7 +520,7 @@ class Router:
         
         time.sleep(10)  # Wait for network convergence
         
-        destinations = [rid for rid in self.__lsdb._LSDB__roteamento.keys() if rid != self.__router_id]
+        destinations = [rid for rid in self.__lsdb._LSDB__routing.keys() if rid != self.__router_id]
         if destinations:
             while True:
                 for dest in destinations:
