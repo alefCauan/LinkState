@@ -11,7 +11,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the router script and network topology
-COPY router/router.py .
+# COPY router/router.py .
 COPY network_topology.json .
 
 # Command to run the router script
