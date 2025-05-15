@@ -1,18 +1,20 @@
-# Use a lightweight Python base image
 FROM python:3.9-slim
+
+# Install system dependencies (e.g., iproute2 for ip command and procps for sysctl)
+RUN apt-get update && apt-get install -y iproute2 procps && rm -rf /var/lib/apt/lists/*
+
+# Set IP forwarding (configuration, applied at runtime via sysctls)
+RUN echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
 
 # Set working directory
 WORKDIR /app
 
-# Copy requirements file
+# Copy requirements (if any)
 COPY requirements.txt .
-
-# Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the router script and network topology
-# COPY router/router.py .
-COPY network_topology.json .
+# Copy the script
+# COPY router.py .
 
-# Command to run the router script
+# Run the script
 CMD ["python", "router.py"]

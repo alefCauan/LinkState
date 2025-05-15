@@ -117,7 +117,9 @@ def create_router_service(router: str, ip_map: Dict, subnet_cost: Dict, subnet_c
         "environment": {"CONTAINER_NAME": router.lower()},
         "volumes": ["./shared:/app"],
         "networks": {},
-        "cap_add": ["NET_ADMIN"]
+        "cap_add": ["NET_ADMIN"],
+        "sysctls":
+            ["net.ipv4.ip_forward=1"]
     }
     
     for net, ip in ip_map[router].items():

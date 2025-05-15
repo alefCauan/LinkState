@@ -19,6 +19,8 @@ services:
         ipv4_address: 192.168.7.2
     cap_add:
     - NET_ADMIN
+    sysctls:
+    - net.ipv4.ip_forward=1
   h1:
     build:
       context: .
@@ -69,6 +71,8 @@ services:
         ipv4_address: 192.168.8.2
     cap_add:
     - NET_ADMIN
+    sysctls:
+    - net.ipv4.ip_forward=1
   h3:
     build:
       context: .
@@ -122,6 +126,8 @@ services:
         ipv4_address: 192.168.9.2
     cap_add:
     - NET_ADMIN
+    sysctls:
+    - net.ipv4.ip_forward=1
   h5:
     build:
       context: .
@@ -172,6 +178,8 @@ services:
         ipv4_address: 192.168.10.2
     cap_add:
     - NET_ADMIN
+    sysctls:
+    - net.ipv4.ip_forward=1
   h7:
     build:
       context: .
@@ -225,6 +233,8 @@ services:
         ipv4_address: 192.168.11.2
     cap_add:
     - NET_ADMIN
+    sysctls:
+    - net.ipv4.ip_forward=1
   h9:
     build:
       context: .
