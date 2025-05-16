@@ -118,13 +118,14 @@ def create_router_service(router: str, ip_map: Dict, subnet_cost: Dict, subnet_c
         "volumes": ["./shared:/app"],
         "networks": {},
         "cap_add": ["NET_ADMIN"],
-        "sysctls":
-            ["net.ipv4.ip_forward=1"]
+        "sysctls": ["net.ipv4.ip_forward=1", "net.ipv4.conf.all.accept_redirects=0"
+, "net.ipv4.conf.all.send_redirects=0"]
     }
     
     for net, ip in ip_map[router].items():
         service["networks"][net] = {"ipv4_address": ip}
-        service["environment"][f"CUSTO_{net}"] = str(subnet_cost[net])
+        service["environment"][f'CONNECTED_TO_ROUTER_{net.split("_")[0]}'] = str(subnet_cost[net])
+
     
     host_net = f"{router.lower()}_hosts_net"
     host_subnet = host_subnet_base.format(subnet_count)
@@ -146,13 +147,15 @@ def create_host_service(host: str, router: str, host_net: str, host_ip: str) -> 
     Returns:
         dict: Host service configuration
     """
+    gateway_ip = f"192.168.{host_ip.split('.')[2]}.2"  
     return {
         "build": {"context": ".", "dockerfile": "host/Dockerfile"},
         "container_name": host.lower(),
         "networks": {host_net: {"ipv4_address": host_ip}},
         "environment": [
             f"CONNECTED_TO={router}",
-            f"CONTAINER_NAME={host.lower()}"
+            f"CONTAINER_NAME={host.lower()}",
+            f"GATEWAY_IP={gateway_ip}"  # Add gateway IP
         ],
         "cap_add": ["NET_ADMIN"],
         "volumes": ["./shared:/app"]

@@ -6,8 +6,7 @@ services:
     container_name: r1
     environment:
       CONTAINER_NAME: r1
-      CUSTO_r1_r2_net: '4'
-      CUSTO_r1_r5_net: '9'
+      CONNECTED_TO_ROUTER_r1: '9'
     volumes:
     - ./shared:/app
     networks:
@@ -21,6 +20,8 @@ services:
     - NET_ADMIN
     sysctls:
     - net.ipv4.ip_forward=1
+    - net.ipv4.conf.all.accept_redirects=0
+    - net.ipv4.conf.all.send_redirects=0
   h1:
     build:
       context: .
@@ -32,6 +33,7 @@ services:
     environment:
     - CONNECTED_TO=R1
     - CONTAINER_NAME=h1
+    - GATEWAY_IP=192.168.7.2
     cap_add:
     - NET_ADMIN
     volumes:
@@ -47,6 +49,7 @@ services:
     environment:
     - CONNECTED_TO=R1
     - CONTAINER_NAME=h2
+    - GATEWAY_IP=192.168.7.2
     cap_add:
     - NET_ADMIN
     volumes:
@@ -58,8 +61,8 @@ services:
     container_name: r2
     environment:
       CONTAINER_NAME: r2
-      CUSTO_r1_r2_net: '4'
-      CUSTO_r2_r3_net: '3'
+      CONNECTED_TO_ROUTER_r1: '4'
+      CONNECTED_TO_ROUTER_r2: '3'
     volumes:
     - ./shared:/app
     networks:
@@ -73,6 +76,8 @@ services:
     - NET_ADMIN
     sysctls:
     - net.ipv4.ip_forward=1
+    - net.ipv4.conf.all.accept_redirects=0
+    - net.ipv4.conf.all.send_redirects=0
   h3:
     build:
       context: .
@@ -84,6 +89,7 @@ services:
     environment:
     - CONNECTED_TO=R2
     - CONTAINER_NAME=h3
+    - GATEWAY_IP=192.168.8.2
     cap_add:
     - NET_ADMIN
     volumes:
@@ -99,6 +105,7 @@ services:
     environment:
     - CONNECTED_TO=R2
     - CONTAINER_NAME=h4
+    - GATEWAY_IP=192.168.8.2
     cap_add:
     - NET_ADMIN
     volumes:
@@ -110,9 +117,8 @@ services:
     container_name: r3
     environment:
       CONTAINER_NAME: r3
-      CUSTO_r2_r3_net: '3'
-      CUSTO_r3_r4_net: '7'
-      CUSTO_r3_r5_net: '1'
+      CONNECTED_TO_ROUTER_r2: '3'
+      CONNECTED_TO_ROUTER_r3: '1'
     volumes:
     - ./shared:/app
     networks:
@@ -128,6 +134,8 @@ services:
     - NET_ADMIN
     sysctls:
     - net.ipv4.ip_forward=1
+    - net.ipv4.conf.all.accept_redirects=0
+    - net.ipv4.conf.all.send_redirects=0
   h5:
     build:
       context: .
@@ -139,6 +147,7 @@ services:
     environment:
     - CONNECTED_TO=R3
     - CONTAINER_NAME=h5
+    - GATEWAY_IP=192.168.9.2
     cap_add:
     - NET_ADMIN
     volumes:
@@ -154,6 +163,7 @@ services:
     environment:
     - CONNECTED_TO=R3
     - CONTAINER_NAME=h6
+    - GATEWAY_IP=192.168.9.2
     cap_add:
     - NET_ADMIN
     volumes:
@@ -165,8 +175,8 @@ services:
     container_name: r4
     environment:
       CONTAINER_NAME: r4
-      CUSTO_r3_r4_net: '7'
-      CUSTO_r4_r5_net: '9'
+      CONNECTED_TO_ROUTER_r3: '7'
+      CONNECTED_TO_ROUTER_r4: '9'
     volumes:
     - ./shared:/app
     networks:
@@ -180,6 +190,8 @@ services:
     - NET_ADMIN
     sysctls:
     - net.ipv4.ip_forward=1
+    - net.ipv4.conf.all.accept_redirects=0
+    - net.ipv4.conf.all.send_redirects=0
   h7:
     build:
       context: .
@@ -191,6 +203,7 @@ services:
     environment:
     - CONNECTED_TO=R4
     - CONTAINER_NAME=h7
+    - GATEWAY_IP=192.168.10.2
     cap_add:
     - NET_ADMIN
     volumes:
@@ -206,6 +219,7 @@ services:
     environment:
     - CONNECTED_TO=R4
     - CONTAINER_NAME=h8
+    - GATEWAY_IP=192.168.10.2
     cap_add:
     - NET_ADMIN
     volumes:
@@ -217,9 +231,9 @@ services:
     container_name: r5
     environment:
       CONTAINER_NAME: r5
-      CUSTO_r1_r5_net: '9'
-      CUSTO_r3_r5_net: '1'
-      CUSTO_r4_r5_net: '9'
+      CONNECTED_TO_ROUTER_r1: '9'
+      CONNECTED_TO_ROUTER_r3: '1'
+      CONNECTED_TO_ROUTER_r4: '9'
     volumes:
     - ./shared:/app
     networks:
@@ -235,6 +249,8 @@ services:
     - NET_ADMIN
     sysctls:
     - net.ipv4.ip_forward=1
+    - net.ipv4.conf.all.accept_redirects=0
+    - net.ipv4.conf.all.send_redirects=0
   h9:
     build:
       context: .
@@ -246,6 +262,7 @@ services:
     environment:
     - CONNECTED_TO=R5
     - CONTAINER_NAME=h9
+    - GATEWAY_IP=192.168.11.2
     cap_add:
     - NET_ADMIN
     volumes:
@@ -261,6 +278,7 @@ services:
     environment:
     - CONNECTED_TO=R5
     - CONTAINER_NAME=h10
+    - GATEWAY_IP=192.168.11.2
     cap_add:
     - NET_ADMIN
     volumes:

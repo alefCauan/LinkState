@@ -1,2 +1,0 @@
-Step 8: Add host services in docker-compose.yml with default gateways pointing to their routers, or update router.py to handle host routing.
-Step 9: Create a host.py script to send/receive packets and verify end-to-end communication across subnetworks.
