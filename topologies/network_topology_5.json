@@ -1,0 +1,121 @@
+{
+    "subnets": [
+        {
+            "subnet_id": 1,
+            "router": "R1",
+            "hosts": [
+                "H1",
+                "H2"
+            ]
+        },
+        {
+            "subnet_id": 2,
+            "router": "R2",
+            "hosts": [
+                "H3",
+                "H4"
+            ]
+        },
+        {
+            "subnet_id": 3,
+            "router": "R3",
+            "hosts": [
+                "H5",
+                "H6"
+            ]
+        },
+        {
+            "subnet_id": 4,
+            "router": "R4",
+            "hosts": [
+                "H7",
+                "H8"
+            ]
+        },
+        {
+            "subnet_id": 5,
+            "router": "R5",
+            "hosts": [
+                "H9",
+                "H10"
+            ]
+        }
+    ],
+    "edges": [
+        {
+            "node1": "R1",
+            "node2": "H1",
+            "weight": null
+        },
+        {
+            "node1": "R1",
+            "node2": "H2",
+            "weight": null
+        },
+        {
+            "node1": "R1",
+            "node2": "R2",
+            "weight": 7
+        },
+        {
+            "node1": "R2",
+            "node2": "H3",
+            "weight": null
+        },
+        {
+            "node1": "R2",
+            "node2": "H4",
+            "weight": null
+        },
+        {
+            "node1": "R2",
+            "node2": "R3",
+            "weight": 1
+        },
+        {
+            "node1": "R2",
+            "node2": "R4",
+            "weight": 5
+        },
+        {
+            "node1": "R3",
+            "node2": "H5",
+            "weight": null
+        },
+        {
+            "node1": "R3",
+            "node2": "H6",
+            "weight": null
+        },
+        {
+            "node1": "R3",
+            "node2": "R4",
+            "weight": 7
+        },
+        {
+            "node1": "R4",
+            "node2": "H7",
+            "weight": null
+        },
+        {
+            "node1": "R4",
+            "node2": "H8",
+            "weight": null
+        },
+        {
+            "node1": "R4",
+            "node2": "R5",
+            "weight": 6
+        },
+        {
+            "node1": "R5",
+            "node2": "H9",
+            "weight": null
+        },
+        {
+            "node1": "R5",
+            "node2": "H10",
+            "weight": null
+        }
+    ]
+}

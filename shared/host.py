@@ -95,7 +95,7 @@ def main():
 
         while True:
             print(f"Host {host_ip} is running with gateway {gateway_ip}...")
-            time.sleep(10)
+            time.sleep(15)
 
     except Exception as e:
         print(f"Host failed with error: {e}")

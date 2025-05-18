@@ -161,12 +161,19 @@ def create_host_service(host: str, router: str, host_net: str, host_ip: str) -> 
         "volumes": ["./shared:/app"]
     }
 
-def generate_docker_compose():
+def generate_docker_compose(topology_file: str = "topologies/network_topology.json") -> None:
     """
+    Generate a docker-compose.yml file based on the provided topology.
+
+    Args:
+        topology_file (str): Path to the topology JSON file
+    returns:
+        None
+   
     Main function to generate docker-compose.yml file.
     """
     # Read topology and extract information
-    topology = read_topology("topologias/network_topology.json")
+    topology = read_topology(topology_file)
     routers, connections, subnets = extract_router_connections(topology)
     connections_per_router = create_connection_map(connections)
     

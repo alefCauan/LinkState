@@ -1,0 +1,536 @@
+{
+    "subnets": [
+        {
+            "subnet_id": 1,
+            "router": "R1",
+            "hosts": [
+                "H1",
+                "H2"
+            ]
+        },
+        {
+            "subnet_id": 2,
+            "router": "R2",
+            "hosts": [
+                "H3",
+                "H4"
+            ]
+        },
+        {
+            "subnet_id": 3,
+            "router": "R3",
+            "hosts": [
+                "H5",
+                "H6"
+            ]
+        },
+        {
+            "subnet_id": 4,
+            "router": "R4",
+            "hosts": [
+                "H7",
+                "H8"
+            ]
+        },
+        {
+            "subnet_id": 5,
+            "router": "R5",
+            "hosts": [
+                "H9",
+                "H10"
+            ]
+        },
+        {
+            "subnet_id": 6,
+            "router": "R6",
+            "hosts": [
+                "H11",
+                "H12"
+            ]
+        },
+        {
+            "subnet_id": 7,
+            "router": "R7",
+            "hosts": [
+                "H13",
+                "H14"
+            ]
+        },
+        {
+            "subnet_id": 8,
+            "router": "R8",
+            "hosts": [
+                "H15",
+                "H16"
+            ]
+        },
+        {
+            "subnet_id": 9,
+            "router": "R9",
+            "hosts": [
+                "H17",
+                "H18"
+            ]
+        },
+        {
+            "subnet_id": 10,
+            "router": "R10",
+            "hosts": [
+                "H19",
+                "H20"
+            ]
+        },
+        {
+            "subnet_id": 11,
+            "router": "R11",
+            "hosts": [
+                "H21",
+                "H22"
+            ]
+        },
+        {
+            "subnet_id": 12,
+            "router": "R12",
+            "hosts": [
+                "H23",
+                "H24"
+            ]
+        },
+        {
+            "subnet_id": 13,
+            "router": "R13",
+            "hosts": [
+                "H25",
+                "H26"
+            ]
+        },
+        {
+            "subnet_id": 14,
+            "router": "R14",
+            "hosts": [
+                "H27",
+                "H28"
+            ]
+        },
+        {
+            "subnet_id": 15,
+            "router": "R15",
+            "hosts": [
+                "H29",
+                "H30"
+            ]
+        },
+        {
+            "subnet_id": 16,
+            "router": "R16",
+            "hosts": [
+                "H31",
+                "H32"
+            ]
+        },
+        {
+            "subnet_id": 17,
+            "router": "R17",
+            "hosts": [
+                "H33",
+                "H34"
+            ]
+        },
+        {
+            "subnet_id": 18,
+            "router": "R18",
+            "hosts": [
+                "H35",
+                "H36"
+            ]
+        },
+        {
+            "subnet_id": 19,
+            "router": "R19",
+            "hosts": [
+                "H37",
+                "H38"
+            ]
+        },
+        {
+            "subnet_id": 20,
+            "router": "R20",
+            "hosts": [
+                "H39",
+                "H40"
+            ]
+        }
+    ],
+    "edges": [
+        {
+            "node1": "R1",
+            "node2": "H1",
+            "weight": null
+        },
+        {
+            "node1": "R1",
+            "node2": "H2",
+            "weight": null
+        },
+        {
+            "node1": "R1",
+            "node2": "R2",
+            "weight": 3
+        },
+        {
+            "node1": "R2",
+            "node2": "H3",
+            "weight": null
+        },
+        {
+            "node1": "R2",
+            "node2": "H4",
+            "weight": null
+        },
+        {
+            "node1": "R2",
+            "node2": "R3",
+            "weight": 4
+        },
+        {
+            "node1": "R2",
+            "node2": "R11",
+            "weight": 4
+        },
+        {
+            "node1": "R3",
+            "node2": "H5",
+            "weight": null
+        },
+        {
+            "node1": "R3",
+            "node2": "H6",
+            "weight": null
+        },
+        {
+            "node1": "R3",
+            "node2": "R4",
+            "weight": 10
+        },
+        {
+            "node1": "R3",
+            "node2": "R20",
+            "weight": 3
+        },
+        {
+            "node1": "R4",
+            "node2": "H7",
+            "weight": null
+        },
+        {
+            "node1": "R4",
+            "node2": "H8",
+            "weight": null
+        },
+        {
+            "node1": "R4",
+            "node2": "R5",
+            "weight": 5
+        },
+        {
+            "node1": "R4",
+            "node2": "R12",
+            "weight": 1
+        },
+        {
+            "node1": "R4",
+            "node2": "R15",
+            "weight": 4
+        },
+        {
+            "node1": "R5",
+            "node2": "H9",
+            "weight": null
+        },
+        {
+            "node1": "R5",
+            "node2": "H10",
+            "weight": null
+        },
+        {
+            "node1": "R5",
+            "node2": "R6",
+            "weight": 4
+        },
+        {
+            "node1": "R6",
+            "node2": "H11",
+            "weight": null
+        },
+        {
+            "node1": "R6",
+            "node2": "H12",
+            "weight": null
+        },
+        {
+            "node1": "R6",
+            "node2": "R7",
+            "weight": 9
+        },
+        {
+            "node1": "R7",
+            "node2": "H13",
+            "weight": null
+        },
+        {
+            "node1": "R7",
+            "node2": "H14",
+            "weight": null
+        },
+        {
+            "node1": "R7",
+            "node2": "R8",
+            "weight": 1
+        },
+        {
+            "node1": "R7",
+            "node2": "R10",
+            "weight": 4
+        },
+        {
+            "node1": "R7",
+            "node2": "R19",
+            "weight": 10
+        },
+        {
+            "node1": "R8",
+            "node2": "H15",
+            "weight": null
+        },
+        {
+            "node1": "R8",
+            "node2": "H16",
+            "weight": null
+        },
+        {
+            "node1": "R8",
+            "node2": "R9",
+            "weight": 10
+        },
+        {
+            "node1": "R8",
+            "node2": "R13",
+            "weight": 6
+        },
+        {
+            "node1": "R9",
+            "node2": "H17",
+            "weight": null
+        },
+        {
+            "node1": "R9",
+            "node2": "H18",
+            "weight": null
+        },
+        {
+            "node1": "R9",
+            "node2": "R10",
+            "weight": 3
+        },
+        {
+            "node1": "R9",
+            "node2": "R18",
+            "weight": 9
+        },
+        {
+            "node1": "R10",
+            "node2": "H19",
+            "weight": null
+        },
+        {
+            "node1": "R10",
+            "node2": "H20",
+            "weight": null
+        },
+        {
+            "node1": "R10",
+            "node2": "R11",
+            "weight": 4
+        },
+        {
+            "node1": "R10",
+            "node2": "R12",
+            "weight": 9
+        },
+        {
+            "node1": "R11",
+            "node2": "H21",
+            "weight": null
+        },
+        {
+            "node1": "R11",
+            "node2": "H22",
+            "weight": null
+        },
+        {
+            "node1": "R11",
+            "node2": "R12",
+            "weight": 6
+        },
+        {
+            "node1": "R11",
+            "node2": "R16",
+            "weight": 8
+        },
+        {
+            "node1": "R11",
+            "node2": "R20",
+            "weight": 9
+        },
+        {
+            "node1": "R12",
+            "node2": "H23",
+            "weight": null
+        },
+        {
+            "node1": "R12",
+            "node2": "H24",
+            "weight": null
+        },
+        {
+            "node1": "R12",
+            "node2": "R13",
+            "weight": 1
+        },
+        {
+            "node1": "R12",
+            "node2": "R17",
+            "weight": 10
+        },
+        {
+            "node1": "R13",
+            "node2": "H25",
+            "weight": null
+        },
+        {
+            "node1": "R13",
+            "node2": "H26",
+            "weight": null
+        },
+        {
+            "node1": "R13",
+            "node2": "R14",
+            "weight": 7
+        },
+        {
+            "node1": "R14",
+            "node2": "H27",
+            "weight": null
+        },
+        {
+            "node1": "R14",
+            "node2": "H28",
+            "weight": null
+        },
+        {
+            "node1": "R14",
+            "node2": "R15",
+            "weight": 2
+        },
+        {
+            "node1": "R14",
+            "node2": "R16",
+            "weight": 2
+        },
+        {
+            "node1": "R14",
+            "node2": "R19",
+            "weight": 1
+        },
+        {
+            "node1": "R15",
+            "node2": "H29",
+            "weight": null
+        },
+        {
+            "node1": "R15",
+            "node2": "H30",
+            "weight": null
+        },
+        {
+            "node1": "R15",
+            "node2": "R16",
+            "weight": 8
+        },
+        {
+            "node1": "R15",
+            "node2": "R20",
+            "weight": 6
+        },
+        {
+            "node1": "R16",
+            "node2": "H31",
+            "weight": null
+        },
+        {
+            "node1": "R16",
+            "node2": "H32",
+            "weight": null
+        },
+        {
+            "node1": "R16",
+            "node2": "R17",
+            "weight": 2
+        },
+        {
+            "node1": "R17",
+            "node2": "H33",
+            "weight": null
+        },
+        {
+            "node1": "R17",
+            "node2": "H34",
+            "weight": null
+        },
+        {
+            "node1": "R17",
+            "node2": "R18",
+            "weight": 6
+        },
+        {
+            "node1": "R18",
+            "node2": "H35",
+            "weight": null
+        },
+        {
+            "node1": "R18",
+            "node2": "H36",
+            "weight": null
+        },
+        {
+            "node1": "R18",
+            "node2": "R19",
+            "weight": 5
+        },
+        {
+            "node1": "R19",
+            "node2": "H37",
+            "weight": null
+        },
+        {
+            "node1": "R19",
+            "node2": "H38",
+            "weight": null
+        },
+        {
+            "node1": "R19",
+            "node2": "R20",
+            "weight": 4
+        },
+        {
+            "node1": "R20",
+            "node2": "H39",
+            "weight": null
+        },
+        {
+            "node1": "R20",
+            "node2": "H40",
+            "weight": null
+        }
+    ]
+}

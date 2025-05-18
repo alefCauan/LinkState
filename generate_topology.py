@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import random
 import json
 
-def create_subnet(G, subnet_index):
+def create_subnet(G, subnet_index: int):
     """
     Create a subnet with 2 hosts and 1 router.
     
@@ -28,7 +28,7 @@ def create_subnet(G, subnet_index):
     
     return {"router": router, "hosts": [host1, host2]}
 
-def connect_routers(G, routers):
+def connect_routers(G, routers: list):
     """
     Connect routers in a topology with random weights.
     
@@ -40,35 +40,74 @@ def connect_routers(G, routers):
     for i in range(len(routers) - 1):
         G.add_edge(routers[i], routers[i + 1], weight=random.randint(1, 10))
     
-    # Add additional random connections
+    # Add additional random connections with lower probability
     for i in range(len(routers)):
         for j in range(i + 2, len(routers)):
-            if random.random() > 0.5:
+            if random.random() > 0.9:  
                 G.add_edge(routers[i], routers[j], weight=random.randint(1, 10))
 
-def visualize_network(G, filename):
+def custom_grid_layout(G, rows=None, cols=None):
     """
-    Visualize and save the network topology.
+    Custom layout to position nodes in a rectangular grid.
+    
+    Args:
+        G (nx.Graph): The network graph
+        rows (int, optional): Number of rows (default: sqrt of number of nodes)
+        cols (int, optional): Number of columns (default: sqrt of number of nodes)
+    
+    Returns:
+        dict: Positions of nodes in a grid layout
+    """
+    nodes = list(G.nodes())
+    n = len(nodes)
+    
+    if rows is None or cols is None:
+        rows = int(n ** 0.5)
+        cols = (n + rows - 1) // rows
+    
+    pos = {}
+    for i, node in enumerate(nodes):
+        row = i // cols
+        col = i % cols
+        pos[node] = (col , -row )  # Increased spacing with 1.5 multiplier
+    
+    return pos
+
+def visualize_network(G, filename: str, layout_type="circular"):
+    """
+    Visualize and save the network topology with only routers, using a specified layout.
     
     Args:
         G (nx.Graph): The network graph
         filename (str): Path to save the image
+        layout_type (str): Type of layout ("circular" for sphere)
     """
-    pos = nx.spring_layout(G)
-    node_colors = ['lightblue' if node[1]["type"] == "router" else 'lightgreen' 
-                   for node in G.nodes(data=True)]
+    # Create a subgraph with only router nodes
+    router_nodes = [node for node, data in G.nodes(data=True) if data["type"] == "router"]
+    router_subgraph = G.subgraph(router_nodes)
+    
+    # Choose layout based on layout_type
+    if layout_type == "circular":
+        pos = nx.circular_layout(router_subgraph, scale=2)
+    elif layout_type == "grid":
+        pos = custom_grid_layout(router_subgraph)
+    else:
+        pos = nx.spring_layout(router_subgraph)
     
     plt.figure(figsize=(10, 8))
-    nx.draw_networkx_nodes(G, pos, node_color=node_colors, node_size=500)
-    nx.draw_networkx_edges(G, pos)
+    nx.draw_networkx_nodes(router_subgraph, pos, node_color='lightblue', node_size=500, label='Routers')
+    nx.draw_networkx_edges(router_subgraph, pos)
     
-    edge_labels = {(u, v): d["weight"] for u, v, d in G.edges(data=True) 
+    edge_labels = {(u, v): d["weight"] for u, v, d in router_subgraph.edges(data=True) 
                   if "weight" in d}
-    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
-    nx.draw_networkx_labels(G, pos)
-    plt.title("Connected Network Graph with Subnets, Hosts, and Routers")
+    nx.draw_networkx_edge_labels(router_subgraph, pos, edge_labels=edge_labels, label_pos=0.8)
+    nx.draw_networkx_labels(router_subgraph, pos)
+    
+    plt.title(f"Network Topology - (Routers Only)")
+    plt.legend()
+    plt.axis('off')  # Remove axes for cleaner image
     plt.savefig(filename)
-    plt.show()
+    plt.close()  # Close the figure to free memory
 
 def save_topology(G, subnets, filename):
     """
@@ -101,30 +140,33 @@ def save_topology(G, subnets, filename):
 
 def main():
     """Main function to generate network topology."""
-    G = nx.Graph()
-    num_subnets = 5
-    subnets = []
-    
-    # Create subnets
-    for i in range(num_subnets):
-        subnet = create_subnet(G, i)
-        subnets.append(subnet)
-    
-    # Connect routers
-    routers = [subnet["router"] for subnet in subnets]
-    connect_routers(G, routers)
-    
-    # Ensure connectivity
-    if not nx.is_connected(G):
-        print("Warning: Graph is not connected! Adjusting...")
-        for i in range(len(routers) - 1):
-            G.add_edge(routers[i], routers[i + 1], weight=random.randint(1, 10))
-    
-    # Visualize and save
-    visualize_network(G, "topologias/network_topology.png")
-    save_topology(G, subnets, "topologias/network_topology.json")
-    
-    print("Network topology has been generated and saved.")
+    for topologies in range(4):
+        G = nx.Graph()
+        num_subnets = [5, 10, 15, 20]
+        subnets = []
+        
+        # Create subnets
+        for i in range(num_subnets[topologies]):
+            subnet = create_subnet(G, i)
+            subnets.append(subnet)
+        
+        # Connect routers
+        routers = [subnet["router"] for subnet in subnets]
+        connect_routers(G, routers)
+        
+        # Ensure connectivity
+        if not nx.is_connected(G):
+            print("Warning: Graph is not connected! Adjusting...")
+            for i in range(len(routers) - 1):
+                G.add_edge(routers[i], routers[i + 1], weight=random.randint(1, 10))
+        
+        # Visualize and save
+        visualize_network(G, f"topologies/network_topology_{num_subnets[topologies]}.png", layout_type="grid")
+        save_topology(G, subnets, f"topologies/network_topology_{num_subnets[topologies]}.json")
+        
+        G.clear()
+        subnets.clear()
+        print("Network topology has been generated and saved.")
 
 if __name__ == "__main__":
     main()
