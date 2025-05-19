@@ -6,16 +6,18 @@ services:
     container_name: r1
     environment:
       CONTAINER_NAME: r1
-      CONNECTED_TO_ROUTER_r1: '9'
+      CONNECTED_TO_ROUTER_r1: '4'
     volumes:
     - ./shared:/app
     networks:
       r1_r2_net:
         ipv4_address: 10.10.1.2
-      r1_r5_net:
+      r1_r3_net:
         ipv4_address: 10.10.2.2
+      r1_r15_net:
+        ipv4_address: 10.10.3.2
       r1_hosts_net:
-        ipv4_address: 192.168.7.2
+        ipv4_address: 192.168.25.2
     cap_add:
     - NET_ADMIN
     sysctls:
@@ -29,11 +31,11 @@ services:
     container_name: h1
     networks:
       r1_hosts_net:
-        ipv4_address: 192.168.7.3
+        ipv4_address: 192.168.25.3
     environment:
     - CONNECTED_TO=R1
     - CONTAINER_NAME=h1
-    - GATEWAY_IP=192.168.7.2
+    - GATEWAY_IP=192.168.25.2
     cap_add:
     - NET_ADMIN
     volumes:
@@ -45,11 +47,369 @@ services:
     container_name: h2
     networks:
       r1_hosts_net:
-        ipv4_address: 192.168.7.4
+        ipv4_address: 192.168.25.4
     environment:
     - CONNECTED_TO=R1
     - CONTAINER_NAME=h2
-    - GATEWAY_IP=192.168.7.2
+    - GATEWAY_IP=192.168.25.2
+    cap_add:
+    - NET_ADMIN
+    volumes:
+    - ./shared:/app
+  r10:
+    build:
+      context: .
+      dockerfile: router/Dockerfile
+    container_name: r10
+    environment:
+      CONTAINER_NAME: r10
+      CONNECTED_TO_ROUTER_r9: '3'
+      CONNECTED_TO_ROUTER_r10: '6'
+    volumes:
+    - ./shared:/app
+    networks:
+      r9_r10_net:
+        ipv4_address: 10.10.17.3
+      r10_r11_net:
+        ipv4_address: 10.10.18.2
+      r10_r12_net:
+        ipv4_address: 10.10.19.2
+      r10_hosts_net:
+        ipv4_address: 192.168.26.2
+    cap_add:
+    - NET_ADMIN
+    sysctls:
+    - net.ipv4.ip_forward=1
+    - net.ipv4.conf.all.accept_redirects=0
+    - net.ipv4.conf.all.send_redirects=0
+  h19:
+    build:
+      context: .
+      dockerfile: host/Dockerfile
+    container_name: h19
+    networks:
+      r10_hosts_net:
+        ipv4_address: 192.168.26.3
+    environment:
+    - CONNECTED_TO=R10
+    - CONTAINER_NAME=h19
+    - GATEWAY_IP=192.168.26.2
+    cap_add:
+    - NET_ADMIN
+    volumes:
+    - ./shared:/app
+  h20:
+    build:
+      context: .
+      dockerfile: host/Dockerfile
+    container_name: h20
+    networks:
+      r10_hosts_net:
+        ipv4_address: 192.168.26.4
+    environment:
+    - CONNECTED_TO=R10
+    - CONTAINER_NAME=h20
+    - GATEWAY_IP=192.168.26.2
+    cap_add:
+    - NET_ADMIN
+    volumes:
+    - ./shared:/app
+  r11:
+    build:
+      context: .
+      dockerfile: router/Dockerfile
+    container_name: r11
+    environment:
+      CONTAINER_NAME: r11
+      CONNECTED_TO_ROUTER_r4: '6'
+      CONNECTED_TO_ROUTER_r10: '8'
+      CONNECTED_TO_ROUTER_r11: '7'
+    volumes:
+    - ./shared:/app
+    networks:
+      r4_r11_net:
+        ipv4_address: 10.10.9.3
+      r10_r11_net:
+        ipv4_address: 10.10.18.3
+      r11_r12_net:
+        ipv4_address: 10.10.20.2
+      r11_r13_net:
+        ipv4_address: 10.10.21.2
+      r11_hosts_net:
+        ipv4_address: 192.168.27.2
+    cap_add:
+    - NET_ADMIN
+    sysctls:
+    - net.ipv4.ip_forward=1
+    - net.ipv4.conf.all.accept_redirects=0
+    - net.ipv4.conf.all.send_redirects=0
+  h21:
+    build:
+      context: .
+      dockerfile: host/Dockerfile
+    container_name: h21
+    networks:
+      r11_hosts_net:
+        ipv4_address: 192.168.27.3
+    environment:
+    - CONNECTED_TO=R11
+    - CONTAINER_NAME=h21
+    - GATEWAY_IP=192.168.27.2
+    cap_add:
+    - NET_ADMIN
+    volumes:
+    - ./shared:/app
+  h22:
+    build:
+      context: .
+      dockerfile: host/Dockerfile
+    container_name: h22
+    networks:
+      r11_hosts_net:
+        ipv4_address: 192.168.27.4
+    environment:
+    - CONNECTED_TO=R11
+    - CONTAINER_NAME=h22
+    - GATEWAY_IP=192.168.27.2
+    cap_add:
+    - NET_ADMIN
+    volumes:
+    - ./shared:/app
+  r12:
+    build:
+      context: .
+      dockerfile: router/Dockerfile
+    container_name: r12
+    environment:
+      CONTAINER_NAME: r12
+      CONNECTED_TO_ROUTER_r10: '6'
+      CONNECTED_TO_ROUTER_r11: '2'
+      CONNECTED_TO_ROUTER_r12: '2'
+    volumes:
+    - ./shared:/app
+    networks:
+      r10_r12_net:
+        ipv4_address: 10.10.19.3
+      r11_r12_net:
+        ipv4_address: 10.10.20.3
+      r12_r13_net:
+        ipv4_address: 10.10.22.2
+      r12_hosts_net:
+        ipv4_address: 192.168.28.2
+    cap_add:
+    - NET_ADMIN
+    sysctls:
+    - net.ipv4.ip_forward=1
+    - net.ipv4.conf.all.accept_redirects=0
+    - net.ipv4.conf.all.send_redirects=0
+  h23:
+    build:
+      context: .
+      dockerfile: host/Dockerfile
+    container_name: h23
+    networks:
+      r12_hosts_net:
+        ipv4_address: 192.168.28.3
+    environment:
+    - CONNECTED_TO=R12
+    - CONTAINER_NAME=h23
+    - GATEWAY_IP=192.168.28.2
+    cap_add:
+    - NET_ADMIN
+    volumes:
+    - ./shared:/app
+  h24:
+    build:
+      context: .
+      dockerfile: host/Dockerfile
+    container_name: h24
+    networks:
+      r12_hosts_net:
+        ipv4_address: 192.168.28.4
+    environment:
+    - CONNECTED_TO=R12
+    - CONTAINER_NAME=h24
+    - GATEWAY_IP=192.168.28.2
+    cap_add:
+    - NET_ADMIN
+    volumes:
+    - ./shared:/app
+  r13:
+    build:
+      context: .
+      dockerfile: router/Dockerfile
+    container_name: r13
+    environment:
+      CONTAINER_NAME: r13
+      CONNECTED_TO_ROUTER_r11: '7'
+      CONNECTED_TO_ROUTER_r12: '2'
+      CONNECTED_TO_ROUTER_r13: '2'
+    volumes:
+    - ./shared:/app
+    networks:
+      r11_r13_net:
+        ipv4_address: 10.10.21.3
+      r12_r13_net:
+        ipv4_address: 10.10.22.3
+      r13_r14_net:
+        ipv4_address: 10.10.23.2
+      r13_hosts_net:
+        ipv4_address: 192.168.29.2
+    cap_add:
+    - NET_ADMIN
+    sysctls:
+    - net.ipv4.ip_forward=1
+    - net.ipv4.conf.all.accept_redirects=0
+    - net.ipv4.conf.all.send_redirects=0
+  h25:
+    build:
+      context: .
+      dockerfile: host/Dockerfile
+    container_name: h25
+    networks:
+      r13_hosts_net:
+        ipv4_address: 192.168.29.3
+    environment:
+    - CONNECTED_TO=R13
+    - CONTAINER_NAME=h25
+    - GATEWAY_IP=192.168.29.2
+    cap_add:
+    - NET_ADMIN
+    volumes:
+    - ./shared:/app
+  h26:
+    build:
+      context: .
+      dockerfile: host/Dockerfile
+    container_name: h26
+    networks:
+      r13_hosts_net:
+        ipv4_address: 192.168.29.4
+    environment:
+    - CONNECTED_TO=R13
+    - CONTAINER_NAME=h26
+    - GATEWAY_IP=192.168.29.2
+    cap_add:
+    - NET_ADMIN
+    volumes:
+    - ./shared:/app
+  r14:
+    build:
+      context: .
+      dockerfile: router/Dockerfile
+    container_name: r14
+    environment:
+      CONTAINER_NAME: r14
+      CONNECTED_TO_ROUTER_r4: '2'
+      CONNECTED_TO_ROUTER_r6: '6'
+      CONNECTED_TO_ROUTER_r13: '2'
+      CONNECTED_TO_ROUTER_r14: '9'
+    volumes:
+    - ./shared:/app
+    networks:
+      r4_r14_net:
+        ipv4_address: 10.10.10.3
+      r6_r14_net:
+        ipv4_address: 10.10.13.3
+      r13_r14_net:
+        ipv4_address: 10.10.23.3
+      r14_r15_net:
+        ipv4_address: 10.10.24.2
+      r14_hosts_net:
+        ipv4_address: 192.168.30.2
+    cap_add:
+    - NET_ADMIN
+    sysctls:
+    - net.ipv4.ip_forward=1
+    - net.ipv4.conf.all.accept_redirects=0
+    - net.ipv4.conf.all.send_redirects=0
+  h27:
+    build:
+      context: .
+      dockerfile: host/Dockerfile
+    container_name: h27
+    networks:
+      r14_hosts_net:
+        ipv4_address: 192.168.30.3
+    environment:
+    - CONNECTED_TO=R14
+    - CONTAINER_NAME=h27
+    - GATEWAY_IP=192.168.30.2
+    cap_add:
+    - NET_ADMIN
+    volumes:
+    - ./shared:/app
+  h28:
+    build:
+      context: .
+      dockerfile: host/Dockerfile
+    container_name: h28
+    networks:
+      r14_hosts_net:
+        ipv4_address: 192.168.30.4
+    environment:
+    - CONNECTED_TO=R14
+    - CONTAINER_NAME=h28
+    - GATEWAY_IP=192.168.30.2
+    cap_add:
+    - NET_ADMIN
+    volumes:
+    - ./shared:/app
+  r15:
+    build:
+      context: .
+      dockerfile: router/Dockerfile
+    container_name: r15
+    environment:
+      CONTAINER_NAME: r15
+      CONNECTED_TO_ROUTER_r1: '4'
+      CONNECTED_TO_ROUTER_r8: '9'
+      CONNECTED_TO_ROUTER_r14: '9'
+    volumes:
+    - ./shared:/app
+    networks:
+      r1_r15_net:
+        ipv4_address: 10.10.3.3
+      r8_r15_net:
+        ipv4_address: 10.10.16.3
+      r14_r15_net:
+        ipv4_address: 10.10.24.3
+      r15_hosts_net:
+        ipv4_address: 192.168.31.2
+    cap_add:
+    - NET_ADMIN
+    sysctls:
+    - net.ipv4.ip_forward=1
+    - net.ipv4.conf.all.accept_redirects=0
+    - net.ipv4.conf.all.send_redirects=0
+  h29:
+    build:
+      context: .
+      dockerfile: host/Dockerfile
+    container_name: h29
+    networks:
+      r15_hosts_net:
+        ipv4_address: 192.168.31.3
+    environment:
+    - CONNECTED_TO=R15
+    - CONTAINER_NAME=h29
+    - GATEWAY_IP=192.168.31.2
+    cap_add:
+    - NET_ADMIN
+    volumes:
+    - ./shared:/app
+  h30:
+    build:
+      context: .
+      dockerfile: host/Dockerfile
+    container_name: h30
+    networks:
+      r15_hosts_net:
+        ipv4_address: 192.168.31.4
+    environment:
+    - CONNECTED_TO=R15
+    - CONTAINER_NAME=h30
+    - GATEWAY_IP=192.168.31.2
     cap_add:
     - NET_ADMIN
     volumes:
@@ -61,17 +421,17 @@ services:
     container_name: r2
     environment:
       CONTAINER_NAME: r2
-      CONNECTED_TO_ROUTER_r1: '4'
-      CONNECTED_TO_ROUTER_r2: '3'
+      CONNECTED_TO_ROUTER_r1: '3'
+      CONNECTED_TO_ROUTER_r2: '9'
     volumes:
     - ./shared:/app
     networks:
       r1_r2_net:
         ipv4_address: 10.10.1.3
       r2_r3_net:
-        ipv4_address: 10.10.3.2
+        ipv4_address: 10.10.4.2
       r2_hosts_net:
-        ipv4_address: 192.168.8.2
+        ipv4_address: 192.168.32.2
     cap_add:
     - NET_ADMIN
     sysctls:
@@ -85,11 +445,11 @@ services:
     container_name: h3
     networks:
       r2_hosts_net:
-        ipv4_address: 192.168.8.3
+        ipv4_address: 192.168.32.3
     environment:
     - CONNECTED_TO=R2
     - CONTAINER_NAME=h3
-    - GATEWAY_IP=192.168.8.2
+    - GATEWAY_IP=192.168.32.2
     cap_add:
     - NET_ADMIN
     volumes:
@@ -101,11 +461,11 @@ services:
     container_name: h4
     networks:
       r2_hosts_net:
-        ipv4_address: 192.168.8.4
+        ipv4_address: 192.168.32.4
     environment:
     - CONNECTED_TO=R2
     - CONTAINER_NAME=h4
-    - GATEWAY_IP=192.168.8.2
+    - GATEWAY_IP=192.168.32.2
     cap_add:
     - NET_ADMIN
     volumes:
@@ -117,19 +477,22 @@ services:
     container_name: r3
     environment:
       CONTAINER_NAME: r3
-      CONNECTED_TO_ROUTER_r2: '3'
-      CONNECTED_TO_ROUTER_r3: '1'
+      CONNECTED_TO_ROUTER_r1: '10'
+      CONNECTED_TO_ROUTER_r2: '9'
+      CONNECTED_TO_ROUTER_r3: '9'
     volumes:
     - ./shared:/app
     networks:
+      r1_r3_net:
+        ipv4_address: 10.10.2.3
       r2_r3_net:
-        ipv4_address: 10.10.3.3
+        ipv4_address: 10.10.4.3
       r3_r4_net:
-        ipv4_address: 10.10.4.2
-      r3_r5_net:
         ipv4_address: 10.10.5.2
+      r3_r6_net:
+        ipv4_address: 10.10.6.2
       r3_hosts_net:
-        ipv4_address: 192.168.9.2
+        ipv4_address: 192.168.33.2
     cap_add:
     - NET_ADMIN
     sysctls:
@@ -143,11 +506,11 @@ services:
     container_name: h5
     networks:
       r3_hosts_net:
-        ipv4_address: 192.168.9.3
+        ipv4_address: 192.168.33.3
     environment:
     - CONNECTED_TO=R3
     - CONTAINER_NAME=h5
-    - GATEWAY_IP=192.168.9.2
+    - GATEWAY_IP=192.168.33.2
     cap_add:
     - NET_ADMIN
     volumes:
@@ -159,11 +522,11 @@ services:
     container_name: h6
     networks:
       r3_hosts_net:
-        ipv4_address: 192.168.9.4
+        ipv4_address: 192.168.33.4
     environment:
     - CONNECTED_TO=R3
     - CONTAINER_NAME=h6
-    - GATEWAY_IP=192.168.9.2
+    - GATEWAY_IP=192.168.33.2
     cap_add:
     - NET_ADMIN
     volumes:
@@ -175,17 +538,23 @@ services:
     container_name: r4
     environment:
       CONTAINER_NAME: r4
-      CONNECTED_TO_ROUTER_r3: '7'
-      CONNECTED_TO_ROUTER_r4: '9'
+      CONNECTED_TO_ROUTER_r3: '10'
+      CONNECTED_TO_ROUTER_r4: '2'
     volumes:
     - ./shared:/app
     networks:
       r3_r4_net:
-        ipv4_address: 10.10.4.3
+        ipv4_address: 10.10.5.3
       r4_r5_net:
-        ipv4_address: 10.10.6.2
+        ipv4_address: 10.10.7.2
+      r4_r6_net:
+        ipv4_address: 10.10.8.2
+      r4_r11_net:
+        ipv4_address: 10.10.9.2
+      r4_r14_net:
+        ipv4_address: 10.10.10.2
       r4_hosts_net:
-        ipv4_address: 192.168.10.2
+        ipv4_address: 192.168.34.2
     cap_add:
     - NET_ADMIN
     sysctls:
@@ -199,11 +568,11 @@ services:
     container_name: h7
     networks:
       r4_hosts_net:
-        ipv4_address: 192.168.10.3
+        ipv4_address: 192.168.34.3
     environment:
     - CONNECTED_TO=R4
     - CONTAINER_NAME=h7
-    - GATEWAY_IP=192.168.10.2
+    - GATEWAY_IP=192.168.34.2
     cap_add:
     - NET_ADMIN
     volumes:
@@ -215,11 +584,11 @@ services:
     container_name: h8
     networks:
       r4_hosts_net:
-        ipv4_address: 192.168.10.4
+        ipv4_address: 192.168.34.4
     environment:
     - CONNECTED_TO=R4
     - CONTAINER_NAME=h8
-    - GATEWAY_IP=192.168.10.2
+    - GATEWAY_IP=192.168.34.2
     cap_add:
     - NET_ADMIN
     volumes:
@@ -231,20 +600,17 @@ services:
     container_name: r5
     environment:
       CONTAINER_NAME: r5
-      CONNECTED_TO_ROUTER_r1: '9'
-      CONNECTED_TO_ROUTER_r3: '1'
-      CONNECTED_TO_ROUTER_r4: '9'
+      CONNECTED_TO_ROUTER_r4: '2'
+      CONNECTED_TO_ROUTER_r5: '3'
     volumes:
     - ./shared:/app
     networks:
-      r1_r5_net:
-        ipv4_address: 10.10.2.3
-      r3_r5_net:
-        ipv4_address: 10.10.5.3
       r4_r5_net:
-        ipv4_address: 10.10.6.3
+        ipv4_address: 10.10.7.3
+      r5_r6_net:
+        ipv4_address: 10.10.11.2
       r5_hosts_net:
-        ipv4_address: 192.168.11.2
+        ipv4_address: 192.168.35.2
     cap_add:
     - NET_ADMIN
     sysctls:
@@ -258,11 +624,11 @@ services:
     container_name: h9
     networks:
       r5_hosts_net:
-        ipv4_address: 192.168.11.3
+        ipv4_address: 192.168.35.3
     environment:
     - CONNECTED_TO=R5
     - CONTAINER_NAME=h9
-    - GATEWAY_IP=192.168.11.2
+    - GATEWAY_IP=192.168.35.2
     cap_add:
     - NET_ADMIN
     volumes:
@@ -274,11 +640,245 @@ services:
     container_name: h10
     networks:
       r5_hosts_net:
-        ipv4_address: 192.168.11.4
+        ipv4_address: 192.168.35.4
     environment:
     - CONNECTED_TO=R5
     - CONTAINER_NAME=h10
-    - GATEWAY_IP=192.168.11.2
+    - GATEWAY_IP=192.168.35.2
+    cap_add:
+    - NET_ADMIN
+    volumes:
+    - ./shared:/app
+  r6:
+    build:
+      context: .
+      dockerfile: router/Dockerfile
+    container_name: r6
+    environment:
+      CONTAINER_NAME: r6
+      CONNECTED_TO_ROUTER_r3: '9'
+      CONNECTED_TO_ROUTER_r4: '2'
+      CONNECTED_TO_ROUTER_r5: '3'
+      CONNECTED_TO_ROUTER_r6: '6'
+    volumes:
+    - ./shared:/app
+    networks:
+      r3_r6_net:
+        ipv4_address: 10.10.6.3
+      r4_r6_net:
+        ipv4_address: 10.10.8.3
+      r5_r6_net:
+        ipv4_address: 10.10.11.3
+      r6_r7_net:
+        ipv4_address: 10.10.12.2
+      r6_r14_net:
+        ipv4_address: 10.10.13.2
+      r6_hosts_net:
+        ipv4_address: 192.168.36.2
+    cap_add:
+    - NET_ADMIN
+    sysctls:
+    - net.ipv4.ip_forward=1
+    - net.ipv4.conf.all.accept_redirects=0
+    - net.ipv4.conf.all.send_redirects=0
+  h11:
+    build:
+      context: .
+      dockerfile: host/Dockerfile
+    container_name: h11
+    networks:
+      r6_hosts_net:
+        ipv4_address: 192.168.36.3
+    environment:
+    - CONNECTED_TO=R6
+    - CONTAINER_NAME=h11
+    - GATEWAY_IP=192.168.36.2
+    cap_add:
+    - NET_ADMIN
+    volumes:
+    - ./shared:/app
+  h12:
+    build:
+      context: .
+      dockerfile: host/Dockerfile
+    container_name: h12
+    networks:
+      r6_hosts_net:
+        ipv4_address: 192.168.36.4
+    environment:
+    - CONNECTED_TO=R6
+    - CONTAINER_NAME=h12
+    - GATEWAY_IP=192.168.36.2
+    cap_add:
+    - NET_ADMIN
+    volumes:
+    - ./shared:/app
+  r7:
+    build:
+      context: .
+      dockerfile: router/Dockerfile
+    container_name: r7
+    environment:
+      CONTAINER_NAME: r7
+      CONNECTED_TO_ROUTER_r6: '7'
+      CONNECTED_TO_ROUTER_r7: '5'
+    volumes:
+    - ./shared:/app
+    networks:
+      r6_r7_net:
+        ipv4_address: 10.10.12.3
+      r7_r8_net:
+        ipv4_address: 10.10.14.2
+      r7_hosts_net:
+        ipv4_address: 192.168.37.2
+    cap_add:
+    - NET_ADMIN
+    sysctls:
+    - net.ipv4.ip_forward=1
+    - net.ipv4.conf.all.accept_redirects=0
+    - net.ipv4.conf.all.send_redirects=0
+  h13:
+    build:
+      context: .
+      dockerfile: host/Dockerfile
+    container_name: h13
+    networks:
+      r7_hosts_net:
+        ipv4_address: 192.168.37.3
+    environment:
+    - CONNECTED_TO=R7
+    - CONTAINER_NAME=h13
+    - GATEWAY_IP=192.168.37.2
+    cap_add:
+    - NET_ADMIN
+    volumes:
+    - ./shared:/app
+  h14:
+    build:
+      context: .
+      dockerfile: host/Dockerfile
+    container_name: h14
+    networks:
+      r7_hosts_net:
+        ipv4_address: 192.168.37.4
+    environment:
+    - CONNECTED_TO=R7
+    - CONTAINER_NAME=h14
+    - GATEWAY_IP=192.168.37.2
+    cap_add:
+    - NET_ADMIN
+    volumes:
+    - ./shared:/app
+  r8:
+    build:
+      context: .
+      dockerfile: router/Dockerfile
+    container_name: r8
+    environment:
+      CONTAINER_NAME: r8
+      CONNECTED_TO_ROUTER_r7: '5'
+      CONNECTED_TO_ROUTER_r8: '9'
+    volumes:
+    - ./shared:/app
+    networks:
+      r7_r8_net:
+        ipv4_address: 10.10.14.3
+      r8_r9_net:
+        ipv4_address: 10.10.15.2
+      r8_r15_net:
+        ipv4_address: 10.10.16.2
+      r8_hosts_net:
+        ipv4_address: 192.168.38.2
+    cap_add:
+    - NET_ADMIN
+    sysctls:
+    - net.ipv4.ip_forward=1
+    - net.ipv4.conf.all.accept_redirects=0
+    - net.ipv4.conf.all.send_redirects=0
+  h15:
+    build:
+      context: .
+      dockerfile: host/Dockerfile
+    container_name: h15
+    networks:
+      r8_hosts_net:
+        ipv4_address: 192.168.38.3
+    environment:
+    - CONNECTED_TO=R8
+    - CONTAINER_NAME=h15
+    - GATEWAY_IP=192.168.38.2
+    cap_add:
+    - NET_ADMIN
+    volumes:
+    - ./shared:/app
+  h16:
+    build:
+      context: .
+      dockerfile: host/Dockerfile
+    container_name: h16
+    networks:
+      r8_hosts_net:
+        ipv4_address: 192.168.38.4
+    environment:
+    - CONNECTED_TO=R8
+    - CONTAINER_NAME=h16
+    - GATEWAY_IP=192.168.38.2
+    cap_add:
+    - NET_ADMIN
+    volumes:
+    - ./shared:/app
+  r9:
+    build:
+      context: .
+      dockerfile: router/Dockerfile
+    container_name: r9
+    environment:
+      CONTAINER_NAME: r9
+      CONNECTED_TO_ROUTER_r8: '5'
+      CONNECTED_TO_ROUTER_r9: '3'
+    volumes:
+    - ./shared:/app
+    networks:
+      r8_r9_net:
+        ipv4_address: 10.10.15.3
+      r9_r10_net:
+        ipv4_address: 10.10.17.2
+      r9_hosts_net:
+        ipv4_address: 192.168.39.2
+    cap_add:
+    - NET_ADMIN
+    sysctls:
+    - net.ipv4.ip_forward=1
+    - net.ipv4.conf.all.accept_redirects=0
+    - net.ipv4.conf.all.send_redirects=0
+  h17:
+    build:
+      context: .
+      dockerfile: host/Dockerfile
+    container_name: h17
+    networks:
+      r9_hosts_net:
+        ipv4_address: 192.168.39.3
+    environment:
+    - CONNECTED_TO=R9
+    - CONTAINER_NAME=h17
+    - GATEWAY_IP=192.168.39.2
+    cap_add:
+    - NET_ADMIN
+    volumes:
+    - ./shared:/app
+  h18:
+    build:
+      context: .
+      dockerfile: host/Dockerfile
+    container_name: h18
+    networks:
+      r9_hosts_net:
+        ipv4_address: 192.168.39.4
+    environment:
+    - CONNECTED_TO=R9
+    - CONTAINER_NAME=h18
+    - GATEWAY_IP=192.168.39.2
     cap_add:
     - NET_ADMIN
     volumes:
@@ -289,53 +889,193 @@ networks:
     ipam:
       config:
       - subnet: 10.10.1.0/24
-  r1_r5_net:
+  r1_r3_net:
     driver: bridge
     ipam:
       config:
       - subnet: 10.10.2.0/24
-  r2_r3_net:
+  r1_r15_net:
     driver: bridge
     ipam:
       config:
       - subnet: 10.10.3.0/24
-  r3_r4_net:
+  r2_r3_net:
     driver: bridge
     ipam:
       config:
       - subnet: 10.10.4.0/24
-  r3_r5_net:
+  r3_r4_net:
     driver: bridge
     ipam:
       config:
       - subnet: 10.10.5.0/24
-  r4_r5_net:
+  r3_r6_net:
     driver: bridge
     ipam:
       config:
       - subnet: 10.10.6.0/24
+  r4_r5_net:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 10.10.7.0/24
+  r4_r6_net:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 10.10.8.0/24
+  r4_r11_net:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 10.10.9.0/24
+  r4_r14_net:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 10.10.10.0/24
+  r5_r6_net:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 10.10.11.0/24
+  r6_r7_net:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 10.10.12.0/24
+  r6_r14_net:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 10.10.13.0/24
+  r7_r8_net:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 10.10.14.0/24
+  r8_r9_net:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 10.10.15.0/24
+  r8_r15_net:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 10.10.16.0/24
+  r9_r10_net:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 10.10.17.0/24
+  r10_r11_net:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 10.10.18.0/24
+  r10_r12_net:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 10.10.19.0/24
+  r11_r12_net:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 10.10.20.0/24
+  r11_r13_net:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 10.10.21.0/24
+  r12_r13_net:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 10.10.22.0/24
+  r13_r14_net:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 10.10.23.0/24
+  r14_r15_net:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 10.10.24.0/24
   r1_hosts_net:
     driver: bridge
     ipam:
       config:
-      - subnet: 192.168.7.0/24
+      - subnet: 192.168.25.0/24
+  r10_hosts_net:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 192.168.26.0/24
+  r11_hosts_net:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 192.168.27.0/24
+  r12_hosts_net:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 192.168.28.0/24
+  r13_hosts_net:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 192.168.29.0/24
+  r14_hosts_net:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 192.168.30.0/24
+  r15_hosts_net:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 192.168.31.0/24
   r2_hosts_net:
     driver: bridge
     ipam:
       config:
-      - subnet: 192.168.8.0/24
+      - subnet: 192.168.32.0/24
   r3_hosts_net:
     driver: bridge
     ipam:
       config:
-      - subnet: 192.168.9.0/24
+      - subnet: 192.168.33.0/24
   r4_hosts_net:
     driver: bridge
     ipam:
       config:
-      - subnet: 192.168.10.0/24
+      - subnet: 192.168.34.0/24
   r5_hosts_net:
     driver: bridge
     ipam:
       config:
-      - subnet: 192.168.11.0/24
+      - subnet: 192.168.35.0/24
+  r6_hosts_net:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 192.168.36.0/24
+  r7_hosts_net:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 192.168.37.0/24
+  r8_hosts_net:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 192.168.38.0/24
+  r9_hosts_net:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 192.168.39.0/24

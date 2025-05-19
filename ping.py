@@ -73,6 +73,7 @@ def test_connectivity(ip_to_container: dict, hosts: list) -> None:
     print("=" * 50)
     
     for origin in hosts:
+        print(hosts)
         print()
         print("-" * 50)
         print(f"{'Pings from ' + origin:^50}")
@@ -80,10 +81,13 @@ def test_connectivity(ip_to_container: dict, hosts: list) -> None:
         print(f"{'Destination IP':<15} {'Container':<12}  {'Status':<8} {'Latency':<10}")
         print("-" * 50)
 
+
         success = 0
         fail = 0
         total_tests += len(ip_to_container) - 1  # Exclude self-ping
         latencies = []
+
+        print(ip_to_container)
 
         for dest_ip in ip_to_container.keys():
             dest_name = ip_to_container[dest_ip]
@@ -95,7 +99,7 @@ def test_connectivity(ip_to_container: dict, hosts: list) -> None:
                     ["docker", "exec", origin, "ping", "-c", "1", "-W", "1", dest_ip],
                     capture_output=True,
                     text=True,
-                    timeout=2
+                    timeout=1
                 )
                 if result.returncode == 0:
                     latency_match = re.search(r"time=([\d.]+)\s*ms", result.stdout)
@@ -121,7 +125,7 @@ def test_connectivity(ip_to_container: dict, hosts: list) -> None:
         
         print()
         print("=" * 23 + f"{origin:^5}" + "=" * 22)
-        print(f"│ {'Successes:':<20} {success:>20}/{total:<5}│")
+        print(f"│ {'Successes:':<20} {success:>21}/{total:<4}│")
         print(f"│ {'Loss Rate:':<20} {loss_percent:>24.2f}% │")
         print("=" * 50)
 
@@ -140,7 +144,7 @@ def test_connectivity(ip_to_container: dict, hosts: list) -> None:
     
     if global_latencies:
         avg_latency = mean(global_latencies)
-        print(f"│ {'Average Latency:':<20} {avg_latency:>23.2f} ms │")
+        print(f"│ {'Average Latency:':<20} {avg_latency:>23.2f} ms│")
     else:
         print(f"│ {'Average Latency:':<20} {'N/A':>25} │")
     print("=" * 50)

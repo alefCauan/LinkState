@@ -3,11 +3,32 @@ import psutil
 import socket
 import threading
 import json
-import os
+import os, sys
 import subprocess
 import ipaddress
 import datetime
 
+def create_socket():
+    """
+    Creates and returns a UDP IPv4 socket.
+    """
+    return socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+
+def get_container_name():
+    """
+    Retrieves the container name from the environment variable CONTAINER_NAME.
+    
+    Returns:
+        str: The container name.
+    
+    Raises:
+        ValueError: If CONTAINER_NAME is not defined in the environment variables.
+    """
+    container_name = os.getenv("CONTAINER_NAME")
+    if not container_name:
+        raise ValueError("CONTAINER_NAME not defined in environment variables")
+    return container_name
 
 def formated_printf(string: str):
     """
@@ -201,21 +222,21 @@ class LSDB:
         # Update routing table
         self.update_routes()
 
-class HelloSender:
+class NeighborDiscovery:
     """
-    Class responsible for creating and periodically sending HELLO packets to neighbors in a network.
+    Class responsible for creating and periodically sending Discovery packets to neighbors in a network.
     
     Attributes:
         _router_id (str): Unique identifier for the router
         _interfaces (list[dict]): List of network interfaces
         _neighbors (dict): Dictionary of known neighbors
-        _interval (int): Time interval between HELLO packets
+        _interval (int): Time interval between Discovery packets
         _PORT (int): UDP port for communication
     """
 
     def __init__(self, router_id: str, interfaces: list[dict[str, str]], neighbors: dict[str, str], interval: int = 10, PORT: int = 5000):
         """
-        Initializes a new HelloSender instance.
+        Initializes a new NeighborDiscovery instance.
 
         Args:
             router_id (str): Unique router identifier
@@ -223,7 +244,7 @@ class HelloSender:
                 - "address": Interface IP
                 - "broadcast": Broadcast IP (if applicable)
             neighbors (dict[str, str]): Dictionary of known neighbors (key: neighbor ID, value: IP)
-            interval (int, optional): Time interval between HELLO packets (default: 10)
+            interval (int, optional): Time interval between Discovery packets (default: 10)
             PORT (int, optional): UDP listening port (default: 5000)
         """
         self._router_id = router_id
@@ -234,16 +255,16 @@ class HelloSender:
 
     def create_packet(self, ip_address: str) -> dict:
         """
-        Creates a HELLO packet.
+        Creates a Discovery packet.
 
         Args:
             ip_address (str): Local interface IP address
 
         Returns: 
-            dict: Dictionary containing HELLO packet data
+            dict: Dictionary containing Discovery packet data
         """
         return {
-            "type": "HELLO",
+            "type": "Discovery",
             "router_id": self._router_id,
             "timestamp": time.time(),
             "ip_address": ip_address,
@@ -252,7 +273,7 @@ class HelloSender:
 
     def send_to_all_neighbors(self):
         """
-        Starts periodic broadcast of HELLO packets.
+        Starts periodic broadcast of Discovery packets.
         """
         # Filter interfaces that have broadcast addresses
         interfaces = [item for item in self._interfaces if "broadcast" in item]
@@ -270,7 +291,7 @@ class HelloSender:
 
                 try:
                     sock.sendto(message, (broadcast_ip, self._PORT))
-                    formated_printf(f"HELLO packet sent to {broadcast_ip} [broadcast]")
+                    formated_printf(f"Discovery packet sent to {broadcast_ip} [broadcast]")
                 except Exception as e:
                     formated_printf(f"Error sending to {broadcast_ip}: {e}")
 
@@ -278,8 +299,8 @@ class HelloSender:
 
     def start(self):
         """
-        Starts the HelloSender operation:
-        - Initializes a thread for broadcasting HELLO packets
+        Starts the NeighborDiscovery operation:
+        - Initializes a thread for broadcasting Discovery packets
         """
         sender_thread = threading.Thread(
             target=self.send_to_all_neighbors, daemon=True)
@@ -398,7 +419,9 @@ class LSASender:
         if not self._started:
             self._started = True
             sender_thread = threading.Thread(
-                target=self.send_to_neighbors, daemon=True)
+                target=self.send_to_neighbors, 
+                daemon=True
+            )
             sender_thread.start()
 
 class Router:
@@ -409,11 +432,11 @@ class Router:
         _router_id (str): Unique router identifier
         _interfaces (list): Network interfaces
         _PORT (int): UDP listening port
-        _hello (HelloSender): HELLO packet sender
+        _discovery (NeighborDiscovery): Discovery packet sender
         _lsa (LSASender): LSA packet sender
         _lsdb (LSDB): Link State Database
         _BUFFER_SIZE (int): Receive buffer size
-        _detected_neighbors (dict): Neighbors detected via HELLO
+        _detected_neighbors (dict): Neighbors detected via Discovery
         _recognized_neighbors (dict): Bidirectionally recognized neighbors
         _neighbor_manager (NeighborManager): Neighbor management component
     """
@@ -431,10 +454,10 @@ class Router:
         self._interfaces = self.list_addresses()
         self._PORT = PORT
         self._BUFFER_SIZE = BUFFER_SIZE
-        self._detected_neighbors = {}  # Neighbors detected via HELLO
+        self._detected_neighbors = {}  # Neighbors detected via Discovery
         self._recognized_neighbors = {}  # Bidirectionally recognized neighbors
         
-        self._hello = HelloSender(
+        self._discovery = NeighborDiscovery(
             self._router_id, self._interfaces, self._detected_neighbors
         )
 
@@ -450,7 +473,7 @@ class Router:
     def receive_packets(self):
         """
         Starts listening for UDP packets on the defined port.
-        Handles HELLO and LSA packets.
+        Handles Discovery and LSA packets.
         """
         sock = create_socket()
         sock.bind(("", self._PORT))
@@ -468,8 +491,8 @@ class Router:
                     formated_printf(
                         f"{packet_type} packet received from {sender_ip} [{sender_id}]")
 
-                    if packet_type == "HELLO":
-                        self._neighbor_manager.process_hello(
+                    if packet_type == "Discovery":
+                        self._neighbor_manager.process_discovery_packet(
                             packet, sender_ip)
                     elif packet_type == "LSA":
                         self._neighbor_manager.process_lsa(
@@ -511,17 +534,21 @@ class Router:
         """
         Starts router operation:
         - Initializes packet listening thread
-        - Starts periodic HELLO packet sending
+        - Starts periodic Discovery packet sending
         - Maintains process with infinite loop
         """
         receiver_thread = threading.Thread(
-            target=self.receive_packets, daemon=True)
+            target=self.receive_packets, 
+            daemon=True
+        )
         receiver_thread.start()
 
-        self._hello.start()
+        self._discovery.start()
 
         failure_thread = threading.Thread(
-            target=self._neighbor_manager.check_failures, daemon=True)
+            target=self._neighbor_manager.check_failures, 
+            daemon=True
+        )
         failure_thread.start()
 
         while True:
@@ -529,15 +556,15 @@ class Router:
 
 class NeighborManager:
     """
-    Class responsible for processing HELLO and LSA packets and managing router neighbors.
+    Class responsible for processing Discovery and LSA packets and managing router neighbors.
     
     Attributes:
         _router_id (str): Unique router identifier
         _lsa (LSASender): LSA packet sender reference
         _lsdb (LSDB): Link State Database reference
-        _detected_neighbors (dict): Neighbors detected via HELLO
+        _detected_neighbors (dict): Neighbors detected via Discovery
         _recognized_neighbors (dict): Bidirectionally recognized neighbors
-        _hello_timestamps (dict): Timestamps of last HELLO from neighbors
+        _discovery_timestamps (dict): Timestamps of last Discovery from neighbors
     """
 
     def __init__(self, router_id: str, lsa: LSASender, lsdb: LSDB):
@@ -554,15 +581,15 @@ class NeighborManager:
         self._lsdb = lsdb
         self._detected_neighbors = lsa.neighbors_cost
         self._recognized_neighbors = lsa.neighbors_ip
-        self._hello_timestamps = {}
+        self._discovery_timestamps = {}
 
-    def process_hello(self, packet: dict, sender_ip: str):
+    def process_discovery_packet(self, packet: dict, sender_ip: str):
         """
-        Processes a HELLO packet, recognizing direct neighbors and starting LSA
+        Processes a Discovery packet, recognizing direct neighbors and starting LSA
         transmission to them if applicable.
 
         Args: 
-            packet (dict): HELLO packet in dictionary format
+            packet (dict): Discovery packet in dictionary format
             sender_ip (str): IP of the sending router
         """
         sender_id = packet.get("router_id")
@@ -570,7 +597,7 @@ class NeighborManager:
             self._router_id, sender_id)
         neighbors = packet.get("known_neighbors")
 
-        self._hello_timestamps[sender_id] = packet.get("timestamp")
+        self._discovery_timestamps[sender_id] = packet.get("timestamp")
 
         # If sender recognizes this router and we haven't registered it yet
         if (self._router_id in neighbors) and (sender_id not in self._recognized_neighbors):
@@ -607,17 +634,17 @@ class NeighborManager:
 
     def check_failures(self, hello_interval: int = 10, tolerance: int = 3):
         """
-        Periodically checks if neighbors have stopped sending HELLO packets,
+        Periodically checks if neighbors have stopped sending Discovery packets,
         detecting potential router failures.
 
         Args:
-            hello_interval (int, optional): Expected time between HELLO packets (default: 10)
+            hello_interval (int, optional): Expected time between Discovery packets (default: 10)
             tolerance (int, optional): Number of missed intervals before declaring inactive (default: 3)
         """
         while True:
             now = time.time()
             failed_routers = [
-                router_id for router_id, timestamp in self._hello_timestamps.items() 
+                router_id for router_id, timestamp in self._discovery_timestamps.items() 
                 if (now - timestamp) > (hello_interval * tolerance)
             ]
 
@@ -636,21 +663,21 @@ class NeighborManager:
             self._lsdb.recalculate_routes(failed_routers)
             time.sleep(1)
 
-def create_socket():
+def main():
     """
-    Creates and returns a UDP IPv4 socket.
+    Main function to start the router operation.
     """
-    return socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    # Set line buffering for stdout
+    sys.stdout.reconfigure(line_buffering=True)
 
-if __name__ == "__main__":
-    # Get router name from environment variable
-    router_id = os.getenv("CONTAINER_NAME")
-    if not router_id:
-        raise ValueError("CONTAINER_NAME not defined in environment variables")
-
-    # Print lock to prevent concurrent output
-    print_lock = threading.Lock()
+    # Get container name from environment variable
+    container_name = get_container_name()
+    formated_printf(f"Router {container_name} started.")
 
     # Start router operation
-    router = Router(router_id)
+    router = Router(container_name)
     router.start()
+
+
+if __name__ == "__main__":
+    main()
