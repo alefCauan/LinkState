@@ -222,4 +222,4 @@ def generate_docker_compose(topology_file: str = "topologies/network_topology.js
     print("docker-compose.yml file has been generated with updated network logic.")
 
 if __name__ == "__main__":
-    generate_docker_compose()
+    generate_docker_compose("topologies/network_topology_5.json")

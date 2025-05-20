@@ -9,5 +9,5 @@ if [ ! -f docker-compose.yml ]; then
     exit 1
 fi
 
-docker-compose down --remove-orphans || { echo "Error: Failed to stop containers"; exit 1; }
+docker compose down --remove-orphans || { echo "Error: Failed to stop containers"; exit 1; }
 docker network prune -f || { echo "Error: Failed to prune networks"; exit 1; }

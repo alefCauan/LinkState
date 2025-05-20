@@ -1,6 +1,8 @@
 import subprocess
 import re
 from statistics import mean
+import tracemalloc
+from generate_docker_compose import generate_docker_compose
 
 def load_docker_compose() -> tuple:
     """
@@ -46,7 +48,7 @@ def load_docker_compose() -> tuple:
     
     return ip_to_container, hosts
 
-def test_connectivity(ip_to_container: dict, hosts: list) -> None:
+def test_connectivity(ip_to_container: dict, hosts: list) -> list:
     """
     Test ping connectivity between all pairs of hosts and display detailed results.
 
@@ -65,7 +67,10 @@ def test_connectivity(ip_to_container: dict, hosts: list) -> None:
     global_success = 0
     global_fail = 0
     total_tests = 0
+    avg_latency = 0
+    avg_peak = 0
     global_latencies = []
+    global_peak  = []
     per_host_stats = {}
 
     print("=" * 50)
@@ -73,7 +78,6 @@ def test_connectivity(ip_to_container: dict, hosts: list) -> None:
     print("=" * 50)
     
     for origin in hosts:
-        print(hosts)
         print()
         print("-" * 50)
         print(f"{'Pings from ' + origin:^50}")
@@ -81,13 +85,14 @@ def test_connectivity(ip_to_container: dict, hosts: list) -> None:
         print(f"{'Destination IP':<15} {'Container':<12}  {'Status':<8} {'Latency':<10}")
         print("-" * 50)
 
-
         success = 0
         fail = 0
         total_tests += len(ip_to_container) - 1  # Exclude self-ping
         latencies = []
 
-        print(ip_to_container)
+        
+        # Iterate over all IPs and containers, excluding self-ping
+        tracemalloc.start()
 
         for dest_ip in ip_to_container.keys():
             dest_name = ip_to_container[dest_ip]
@@ -118,6 +123,10 @@ def test_connectivity(ip_to_container: dict, hosts: list) -> None:
                 fail += 1
                 global_fail += 1
         
+        _, peak = tracemalloc.get_traced_memory()
+        global_peak.append(peak)
+        tracemalloc.reset_peak()
+
         # Print summary for the current host
         total = success + fail
         loss_percent = (fail / total) * 100 if total > 0 else 0
@@ -127,6 +136,7 @@ def test_connectivity(ip_to_container: dict, hosts: list) -> None:
         print("=" * 23 + f"{origin:^5}" + "=" * 22)
         print(f"│ {'Successes:':<20} {success:>21}/{total:<4}│")
         print(f"│ {'Loss Rate:':<20} {loss_percent:>24.2f}% │")
+        print(f"| {'Peak memory usage:': <20} {peak / 10**3:>22.2f} KB │")
         print("=" * 50)
 
     
@@ -147,6 +157,10 @@ def test_connectivity(ip_to_container: dict, hosts: list) -> None:
         print(f"│ {'Average Latency:':<20} {avg_latency:>23.2f} ms│")
     else:
         print(f"│ {'Average Latency:':<20} {'N/A':>25} │")
+
+    if global_peak:
+        avg_peak = mean(global_peak)
+        print(f"│ {'Average Peak Memory:':<20} {avg_peak / 10**3:>22.2f} KB │")
     print("=" * 50)
     
     print(f"\n{'Success Rate by Origin':^50}")
@@ -156,6 +170,9 @@ def test_connectivity(ip_to_container: dict, hosts: list) -> None:
     for origin, stats in per_host_stats.items():
         success_rate = (stats['success'] / stats['total']) * 100 if stats['total'] > 0 else 0
         print(f"{origin:<12} {stats['success']:<8} {stats['total']:<8} {success_rate:>6.2f}%")
+
+    return avg_latency
+
 
 def main():
     """
@@ -176,4 +193,5 @@ def main():
     test_connectivity(ip_to_container, hosts)
 
 if __name__ == "__main__":
+    # generate_docker_compose("topologies/network_topology_15.json")
     main()
