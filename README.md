@@ -122,5 +122,7 @@ O script `generate_topology.py` executa:
 
 Desenvolvido para o curso de **SISTEMAS DE INFORMAÇÃO** – UFPI (CSHNB)
 Disciplina: *Redes de Computadores II*
-
 ---
+
+## 📜 Licença
+Este projeto é licenciado sob a Licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
