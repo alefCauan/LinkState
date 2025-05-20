@@ -14,7 +14,6 @@ def create_socket():
     """
     return socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-
 def get_container_name():
     """
     Retrieves the container name from the environment variable CONTAINER_NAME.
@@ -40,6 +39,7 @@ def formated_printf(string: str):
             print(f"[{container_name}] {string}")
     except NameError:
         print(string)
+
 
 class LSDB:
     """
@@ -662,6 +662,7 @@ class NeighborManager:
 
             self._lsdb.recalculate_routes(failed_routers)
             time.sleep(1)
+
 
 def main():
     """

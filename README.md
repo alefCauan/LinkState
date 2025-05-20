@@ -30,8 +30,9 @@ pip install -r requirements.txt
 ```bash
 python3 generate_topology.py
 ```
-
 Gera o arquivo `network_topology.json`, contendo a estrutura da rede (roteadores, hosts e enlaces com custos).
+
+---
 
 ### 4. Criar Arquivo docker-compose
 
@@ -41,6 +42,8 @@ python3 generate_docker_compose.py
 
 Gera dinamicamente o `docker-compose.yml` baseado na topologia criada.
 
+---
+
 ### 5. Construir e Subir os Containers
 
 ```bash
@@ -49,14 +52,19 @@ docker-compose up --build
 
 Todos os roteadores e hosts são iniciados conforme a topologia gerada.
 
+---
+
 ### 6. Monitorar Logs da Rede
 
 Você pode acompanhar os logs diretamente pelo Docker Compose ou acessar os containers individualmente para depuração detalhada.
+
+---
 
 ### 7. Fechar o projeto
 
 ```bash
 ./down.sh
+```
 
 ---
 
