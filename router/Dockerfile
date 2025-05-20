@@ -23,7 +23,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the script
-# COPY router.py .
+COPY router.py /app/router.py
 
 # Run the script
-CMD ["python", "router.py"]
+CMD ["python", "/app/router.py"]

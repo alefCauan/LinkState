@@ -1,61 +1,87 @@
-import os
-import json
-import heapq
-import threading
 import time
-import sys
-import socket
-import subprocess
-import datetime
 import psutil
+import socket
+import threading
+import json
+import os, sys
+import subprocess
 import ipaddress
+import datetime
 
-sys.stdout.reconfigure(line_buffering=True)
+def create_socket():
+    """
+    Creates and returns a UDP IPv4 socket.
+    """
+    return socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-print("Router script started.")
 
-__print_lock = threading.Lock()
+def get_container_name():
+    """
+    Retrieves the container name from the environment variable CONTAINER_NAME.
+    
+    Returns:
+        str: The container name.
+    
+    Raises:
+        ValueError: If CONTAINER_NAME is not defined in the environment variables.
+    """
+    container_name = os.getenv("CONTAINER_NAME")
+    if not container_name:
+        raise ValueError("CONTAINER_NAME not defined in environment variables")
+    return container_name
+
+def formated_printf(string: str):
+    """
+    Prints a message with standardized format including container name.
+    """
+    try:
+        container_name = os.getenv("CONTAINER_NAME")
+        with print_lock:
+            print(f"[{container_name}] {string}")
+    except NameError:
+        print(string)
 
 class LSDB:
     """
-    Link State Database (LSDB) for maintaining routing information in a link-state routing protocol.
-
+    Represents the Link State Database (LSDB), responsible for storing information received via 
+    Link State Advertisement (LSA) and calculating the best network paths using Dijkstra's algorithm.
+    
     Attributes:
-        __router_id (str): The identifier of the router.
-        __neighbors_ip (dict): Mapping of neighbor router IDs to their IP addresses.
-        __table (dict): The link-state database storing router entries.
-        __routing (dict): Routing table mapping destinations to next hops.
-        __tempo_inicio (float): Timestamp when the router started (for convergence timing).
-        __router_quant (int): Number of known routers in the network.
+        _table (dict): Database storing router information received via LSA
+        _router_id (str): Unique identifier for this router
+        _routing_table (dict): Maintains destination routers and next hops to reach them
+        _neighbors_ip (dict): Dictionary mapping neighbor IDs to their IP addresses
+        _start_time (float): Timestamp when the LSDB was initialized
+        _router_count (int): Count of known routers in the network
     """
 
-    def __init__(self, router_id: str, neighbors_ip: dict) -> None:
+    def __init__(self, router_id: str, neighbors_ip: dict[str, str]):
         """
-        Initialize the LSDB with router-specific data.
+        Initializes a new LSDB instance.
+
+        Args: 
+            router_id (str): Unique identifier for the router
+            neighbors_ip (dict[str, str]): Dictionary where keys are neighbor IDs and values are their IP addresses
+        """
+        self._router_id = router_id
+        self._neighbors_ip = neighbors_ip
+        self._table = {}  # Stores LSA received information
+        self._routing_table = {}  # Maps destinations to next hops
+        self._start_time = time.time()
+        self._router_count = 0
+
+    def create_entry(self, sequence_number: int, timestamp: float, addresses: list[str], links: dict[str, int]) -> dict:
+        """
+        Creates a new entry in the LSDB table based on packet information.
 
         Args:
-            router_id (str): The identifier of this router (e.g., 'r1').
-            neighbors_ip (dict): Dictionary mapping neighbor router IDs to their IP addresses.
-        """
-        self.__router_id = router_id
-        self.__neighbors_ip = neighbors_ip
-        self.__table = {}
-        self.__routing = {}
-        self.__tempo_inicio = time.time()
-        self.__router_quant = 0
+            sequence_number (int): LSA sequence number
+            timestamp (float): Packet creation time
+            addresses (list[str]): List of all interface IP addresses
+            links (dict[str, int]): Dictionary where keys are neighbor IDs and values are link costs
 
-    def __create_entry(self, sequence_number: int, timestamp: float, addresses: list, links: dict) -> dict:
-        """
-        Create an entry for the link-state database.
-
-        Args:
-            sequence_number (int): Sequence number of the LSA packet.
-            timestamp (float): Timestamp of the LSA packet.
-            addresses (list): List of IP addresses associated with the router.
-            links (dict): Dictionary mapping neighbor router IDs to link costs.
-
-        Returns:
-            dict: A dictionary representing the LSDB entry.
+        Returns: 
+            dict: Dictionary containing the entry data
         """
         return {
             "sequence_number": sequence_number,
@@ -64,380 +90,425 @@ class LSDB:
             "links": links,
         }
 
-    def update_lsdb(self, pacote: dict) -> bool:
+    def update(self, packet: dict) -> bool:
         """
-        Update the LSDB with a new LSA packet and recalculate routes.
+        Updates the routing table upon receiving a valid LSA packet.
 
         Args:
-            pacote (dict): The LSA packet containing routing information.
+            packet (dict): LSA packet in dictionary format
 
         Returns:
-            bool: True if the database was updated, False otherwise.
+            bool: True if the table was updated, False otherwise
         """
-        router_id = pacote["router_id"]
-        sequence_number = pacote["sequence_number"]
-        entrada = self.__table.get(router_id)
-        print(f"[{self.__router_id}] Processing LSA from {router_id} (seq {sequence_number}, current seq {entrada['sequence_number'] if entrada else 'None'})")
-        if entrada and sequence_number <= entrada["sequence_number"]:
-            print(f"[{self.__router_id}] Ignoring old LSA from {router_id}")
+        router_id = packet["router_id"]
+        sequence_number = packet["sequence_number"]
+        entry = self._table.get(router_id)
+
+        # Packet is invalid if we already have an equal or newer entry
+        if entry and sequence_number <= entry["sequence_number"]:
             return False
-        self.__table[router_id] = self.__create_entry(
-            sequence_number, pacote["timestamp"], pacote["addresses"], pacote["links"]
-        )
-        print(f"[{self.__router_id}] Updated LSDB for {router_id} with addresses: {pacote['addresses']}")
 
-        for vizinho in pacote["links"].keys():
-            if vizinho not in self.__table:
-                print(f"[LSDB] Discovered new router: {vizinho}")
-                self.__table[vizinho] = self.__create_entry(-1, 0, [], {})
+        # Create new table entry
+        self._table[router_id] = self.create_entry(
+            sequence_number, packet["timestamp"], packet["addresses"], packet["links"])
 
-        self.__router_quant = len(self.__table.keys())
-        paths = self.__dijkstra()
-        self.__update_lsdb_next_jump(paths)
-        self.__update_lsdb_routes()
+        # Check if network has converged (we know routes to all known routers)
+        self._router_count = len(self._table.keys())
+        self.recalculate_routes(packet["links"].keys())
+
         return True
 
-    def __dijkstra(self) -> dict:
+    def dijkstra(self) -> dict:
         """
-        Run Dijkstra's algorithm to compute shortest paths from this router to all others.
+        Calculates the shortest path between this router and all other known routers.
 
         Returns:
-            dict: A dictionary mapping each router to its predecessor in the shortest path.
+            dict: Dictionary where keys are destination routers and values are previous routers
         """
-        distances = {router: float("infinity") for router in self.__table}
-        distances[self.__router_id] = 0
-        predecessors = {router: None for router in self.__table}
-        pq = [(0, self.__router_id)]
-        visited = set()
-        print(f"[{self.__router_id}] Running Dijkstra. Initial distances: {distances}")
-        while pq:
-            current_distance, current_router = heapq.heappop(pq)
-            if current_router in visited:
-                continue
-            visited.add(current_router)
-            links = self.__table.get(current_router, {}).get("links", {})
-            if not links:
-                print(f"[{self.__router_id}] No links for router {current_router}")
-            for neighbor, weight in links.items():
-                if neighbor in self.__table:
-                    distance = current_distance + weight
-                    if distance < distances[neighbor]:
-                        distances[neighbor] = distance
-                        predecessors[neighbor] = current_router
-                        heapq.heappush(pq, (distance, neighbor))
-        print(f"[{self.__router_id}] Dijkstra completed. Predecessors: {predecessors}")
-        return predecessors
+        distances = {}
+        paths = {}
+        visited = {}
 
-    def __update_lsdb_next_jump(self, paths: dict) -> None:
+        # Initialize dictionaries
+        for router in self._table.keys():
+            distances[router] = float('inf')
+            paths[router] = None
+
+        distances[self._router_id] = 0
+
+        while len(visited) < len(self._table):
+            current_router = None
+            min_distance = float('inf')
+            
+            # Find the unvisited router with smallest distance
+            for node, distance in distances.items():
+                if node not in visited and distance < min_distance:
+                    current_router = node
+                    min_distance = distance
+
+            if current_router is None:
+                break
+
+            visited[current_router] = True
+            neighbors = self._table[current_router]["links"]
+
+            # Update distances for neighboring routers
+            for neighbor, cost in neighbors.items():
+                if neighbor not in visited:
+                    total_cost = cost + distances[current_router]
+                    if total_cost < distances[neighbor]:
+                        distances[neighbor] = total_cost
+                        paths[neighbor] = current_router
+
+        return paths
+
+    def update_next_hop(self, paths: dict):
         """
-        Update the routing table with next-hop information based on shortest paths.
+        Traverses the shortest paths to determine the next hop for each router from this router.
 
         Args:
-            paths (dict): Dictionary mapping routers to their predecessors in shortest paths.
+            paths (dict): Dictionary where keys are destination routers and values are previous routers
         """
-        self.__routing = {}
-        print(f"[{self.__router_id}] Updating next hops. Paths: {paths}")
-        for destino in paths.keys():
-            if destino != self.__router_id:
-                pulo = destino
-                while pulo is not None and paths[pulo] != self.__router_id:
-                    pulo = paths[pulo]
-                if pulo is not None:
-                    self.__routing[destino] = pulo
-        self.__routing = dict(sorted(self.__routing.items()))
-        print(f"[{self.__router_id}] Updated routing table: {self.__routing}")
+        for destination in paths.keys():
+            if destination != self._router_id:
+                hop = destination
+                while hop is not None and paths[hop] != self._router_id:
+                    hop = paths[hop]
+                self._routing_table[destination] = hop
 
-    def __update_lsdb_routes(self) -> None:
+        self._routing_table = dict(sorted(self._routing_table.items()))
+
+    def update_routes(self):
         """
-        Update the system's routing table using the `ip route` command based on the routing table.
+        Updates the routing table based on next hops found by update_next_hop().
         """
-        print(f"[{self.__router_id}] Updating routes. Current routing table: {self.__routing}")
-        for router_destiny, router_gateway in list(self.__routing.items()):
-            if router_destiny != self.__router_id:
-                if router_gateway not in self.__neighbors_ip:
-                    print(f"[LSDB] Ignoring route to {router_destiny} via {router_gateway}: gateway not recognized yet")
-                    continue
-                for ip_destiny in self.__table[router_destiny]["addresses"]:
-                    if "/24" in ip_destiny:  # Ensure it's a network
-                        ip_gateway = self.__neighbors_ip[router_gateway]
-                        command = ["ip", "route", "replace", ip_destiny, "via", ip_gateway]
+        for dest_router, gateway_router in list(self._routing_table.items()):
+            if dest_router != self._router_id:
+                if gateway_router not in self._neighbors_ip:
+                    formated_printf(
+                        f"[LSDB] Ignoring route to {dest_router} via {gateway_router}: gateway not yet known")
+                else:
+                    # Update route associating all neighbor IPs to the next hop
+                    for dest_ip in self._table[dest_router]["addresses"]:
+                        gateway_ip = self._neighbors_ip[gateway_router]
+
+                        command = ["ip", "route", "replace",
+                                 dest_ip, "via", gateway_ip]
                         try:
-                            result = subprocess.run(command, check=True, capture_output=True, text=True)
-                            print(f"Route added successfully: {ip_destiny} -> {ip_gateway} [{router_gateway}] - Output: {result.stdout}")
+                            subprocess.run(command, check=True)
+                            formated_printf(
+                                f"Route added: {dest_ip} -> {gateway_ip} [{gateway_router}]")
                         except subprocess.CalledProcessError as e:
-                            print(f"[ERROR] Failed to add route: {command} -> {e.stderr} ({self.__router_id} -> {router_gateway})")
-                    else:
-                        print(f"[WARNING] Skipping invalid destination: {ip_destiny} (not a /24 network)")
+                            formated_printf(
+                                f"[ERROR] Failed to add route: [{command}] -> [{e}] ({self._router_id} -> {gateway_router})")
 
-class HelloSender:
-    """
-    Sends HELLO packets periodically to discover neighbors in the network.
-
-    Attributes:
-        __router_id (str): The identifier of the router.
-        __interfaces (list): List of network interfaces for broadcasting HELLO packets.
-        __neighbors_detected (dict): Dictionary of detected neighbors and their costs.
-        __interval (float): Interval (in seconds) between HELLO packet transmissions.
-    """
-
-    def __init__(self, router_id: str, interfaces: list, neighbors_detected: dict) -> None:
+    def recalculate_routes(self, observed_routers: list[str]):
         """
-        Initialize the HelloSender with router-specific data.
+        Recalculates routes using Dijkstra's algorithm and applies them to the routing table.
 
         Args:
-            router_id (str): The identifier of this router.
-            interfaces (list): List of network interfaces for broadcasting.
-            neighbors_detected (dict): Dictionary to store detected neighbors.
+            observed_routers (list[str]): List of observed routers
         """
-        self.__router_id = router_id
-        self.__interfaces = interfaces
-        self.__neighbors_detected = neighbors_detected
-        self.__interval = 5.0
+        # Check for unknown routers in observed routers
+        for neighbor in observed_routers:
+            if neighbor not in self._table:
+                formated_printf(f"[LSDB] Discovered new router: {neighbor}")
+                self._table[neighbor] = self.create_entry(-1, 0, [], {})
 
-    def __send_hello(self) -> None:
+        # Calculate shortest paths to each router
+        paths = self.dijkstra()
+        # Determine next hops for each path
+        self.update_next_hop(paths)
+        # Update routing table
+        self.update_routes()
+
+class NeighborDiscovery:
+    """
+    Class responsible for creating and periodically sending Discovery packets to neighbors in a network.
+    
+    Attributes:
+        _router_id (str): Unique identifier for the router
+        _interfaces (list[dict]): List of network interfaces
+        _neighbors (dict): Dictionary of known neighbors
+        _interval (int): Time interval between Discovery packets
+        _PORT (int): UDP port for communication
+    """
+
+    def __init__(self, router_id: str, interfaces: list[dict[str, str]], neighbors: dict[str, str], interval: int = 10, PORT: int = 5000):
         """
-        Send HELLO packets periodically to all broadcast addresses on the interfaces.
+        Initializes a new NeighborDiscovery instance.
+
+        Args:
+            router_id (str): Unique router identifier
+            interfaces (list[dict[str, str]]): List of network interface dictionaries containing:
+                - "address": Interface IP
+                - "broadcast": Broadcast IP (if applicable)
+            neighbors (dict[str, str]): Dictionary of known neighbors (key: neighbor ID, value: IP)
+            interval (int, optional): Time interval between Discovery packets (default: 10)
+            PORT (int, optional): UDP listening port (default: 5000)
         """
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self._router_id = router_id
+        self._interfaces = interfaces
+        self._neighbors = neighbors
+        self._interval = interval
+        self._PORT = PORT
+
+    def create_packet(self, ip_address: str) -> dict:
+        """
+        Creates a Discovery packet.
+
+        Args:
+            ip_address (str): Local interface IP address
+
+        Returns: 
+            dict: Dictionary containing Discovery packet data
+        """
+        return {
+            "type": "Discovery",
+            "router_id": self._router_id,
+            "timestamp": time.time(),
+            "ip_address": ip_address,
+            "known_neighbors": list(self._neighbors.keys()),
+        }
+
+    def send_to_all_neighbors(self):
+        """
+        Starts periodic broadcast of Discovery packets.
+        """
+        # Filter interfaces that have broadcast addresses
+        interfaces = [item for item in self._interfaces if "broadcast" in item]
+
+        sock = create_socket()
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        while True:
-            packet = {
-                "type": "HELLO",
-                "router_id": self.__router_id,
-                "known_neighbors": list(self.__neighbors_detected.keys())
-            }
-            packet_data = json.dumps(packet).encode("utf-8")
-            for interface in self.__interfaces:
-                if "broadcast" in interface:
-                    try:
-                        sock.sendto(packet_data, (interface["broadcast"], 5000))
-                        print(f"Sent HELLO to {interface['broadcast']}")
-                    except Exception as e:
-                        print(f"[ERROR] Failed to send HELLO to {interface['broadcast']}: {e}")
-            time.sleep(self.__interval)
 
-    def start(self) -> None:
+        while True:
+            for interface_info in interfaces:
+                ip_address = interface_info["address"]
+                broadcast_ip = interface_info["broadcast"]
+
+                packet = self.create_packet(ip_address)
+                message = json.dumps(packet).encode("utf-8")
+
+                try:
+                    sock.sendto(message, (broadcast_ip, self._PORT))
+                    formated_printf(f"Discovery packet sent to {broadcast_ip} [broadcast]")
+                except Exception as e:
+                    formated_printf(f"Error sending to {broadcast_ip}: {e}")
+
+            time.sleep(self._interval)
+
+    def start(self):
         """
-        Start the HELLO packet sender in a separate thread.
+        Starts the NeighborDiscovery operation:
+        - Initializes a thread for broadcasting Discovery packets
         """
-        thread = threading.Thread(target=self.__send_hello, daemon=True)
-        thread.start()
+        sender_thread = threading.Thread(
+            target=self.send_to_all_neighbors, daemon=True)
+        sender_thread.start()
 
 class LSASender:
     """
-    Sends and forwards LSA (Link State Advertisement) packets to propagate routing information.
-
+    Class responsible for creating, sending, and forwarding LSA (Link State Advertisement) packets.
+    
     Attributes:
-        __router_id (str): The identifier of the router.
-        __neighbors_ip (dict): Mapping of neighbor router IDs to their IP addresses.
-        __neighbors_cost (dict): Mapping of neighbor router IDs to link costs.
-        __interfaces (list): List of network interfaces for broadcasting LSA packets.
-        __lsdb (LSDB): The Link State Database instance for this router.
-        __sequence_number (int): Sequence number for LSA packets.
-        __interval (float): Interval (in seconds) between LSA packet transmissions.
+        _router_id (str): Unique router identifier
+        _neighbors_ip (dict): Neighbor IDs mapped to IPs
+        _neighbors_cost (dict): Neighbor IDs mapped to link costs
+        _interval (int): Time interval between LSA packets
+        _PORT (int): UDP port for communication
+        _sequence_number (int): LSA sequence number
+        _started (bool): Flag indicating if sender is active
+        _lsdb (LSDB): Link State Database reference
+        _interfaces (list): List of network interfaces
     """
 
-    def __init__(self, router_id: str, neighbors_ip: dict, neighbors_cost: dict, interfaces: list, lsdb: LSDB) -> None:
+    def __init__(self, router_id: str, neighbors_ip: dict[str, str], neighbors_cost: dict[str, int], 
+                 interfaces: list[dict[str, str]], lsdb: LSDB, interval: int = 30, PORT: int = 5000):
         """
-        Initialize the LSASender with router-specific data.
+        Initializes a new LSASender instance.
 
         Args:
-            router_id (str): The identifier of this router.
-            neighbors_ip (dict): Dictionary mapping neighbor router IDs to their IP addresses.
-            neighbors_cost (dict): Dictionary mapping neighbor router IDs to link costs.
-            interfaces (list): List of network interfaces for broadcasting.
-            lsdb (LSDB): The Link State Database instance.
+            router_id (str): Unique router identifier
+            neighbors_ip (dict[str, str]): Neighbor IDs mapped to IPs
+            neighbors_cost (dict[str, str]): Neighbor IDs mapped to link costs
+            interfaces (list[dict[str, str]]): Network interfaces
+            lsdb (LSDB): Link State Database reference
+            interval (int, optional): Time between LSA packets (default: 30)
+            PORT (int, optional): UDP port (default: 5000)
         """
-        self.__router_id = router_id
-        self.__neighbors_ip = neighbors_ip
-        self.__neighbors_cost = neighbors_cost
-        self.__interfaces = interfaces
-        self.__lsdb = lsdb
-        self.__sequence_number = 0
-        self.__interval = 10.0
+        self._router_id = router_id
+        self._neighbors_ip = neighbors_ip
+        self._neighbors_cost = neighbors_cost
+        self._interval = interval
+        self._PORT = PORT
+        self._sequence_number = 0
+        self._started = False
+        self._lsdb = lsdb
+        self._interfaces = interfaces
 
-    def __send_lsa(self) -> None:
+    @property
+    def neighbors_ip(self):
+        return self._neighbors_ip
+
+    @property
+    def neighbors_cost(self):
+        return self._neighbors_cost
+
+    def create_packet(self) -> dict:
         """
-        Send LSA packets periodically to all broadcast addresses on the interfaces.
+        Creates an LSA packet.
+
+        Returns: 
+            dict: Dictionary containing LSA packet data
         """
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        self._sequence_number += 1
+        return {
+            "type": "LSA",
+            "router_id": self._router_id,
+            "timestamp": time.time(),
+            "addresses": [item["address"] for item in self._interfaces],
+            "sequence_number": self._sequence_number,
+            "links": {neighbor_id: cost for (neighbor_id, cost) in self._neighbors_cost.items()}
+        }
+
+    def send_to_neighbors(self):
+        """
+        Starts periodic sending of LSA packets to all direct neighbors.
+        """
+        sock = create_socket()
         while True:
-            addresses = []
-            for iface in self.__interfaces:
-                if "address" in iface and "/24" in iface["address"]:
-                    addresses.append(iface["address"])
-                elif "address" in iface:
-                    ip = ipaddress.ip_address(iface["address"])
-                    network = ipaddress.IPv4Network(f"{ip}/24", strict=False)
-                    addresses.append(str(network.network_address) + "/24")
-            links = {neighbor: cost for neighbor, cost in self.__neighbors_cost.items()}
-            print(f"[{self.__router_id}] Sending LSA with links: {links}")
-            packet = {
-                "type": "LSA",
-                "router_id": self.__router_id,
-                "sequence_number": self.__sequence_number,
-                "timestamp": time.time(),
-                "addresses": addresses,
-                "links": links
-            }
-            self.__sequence_number += 1
-            packet_data = json.dumps(packet).encode("utf-8")
-            for interface in self.__interfaces:
-                if "broadcast" in interface:
-                    try:
-                        sock.sendto(packet_data, (interface["broadcast"], 5000))
-                        print(f"Sent LSA to {interface['broadcast']} with addresses: {addresses}")
-                    except Exception as e:
-                        print(f"[ERROR] Failed to send LSA to {interface['broadcast']}: {e}")
-            time.sleep(self.__interval)
+            packet = self.create_packet()
+            self._lsdb.update(packet)
+            message = json.dumps(packet).encode("utf-8")
 
-    def forward_to_neighbors(self, packet: dict, sender_ip: str) -> None:
-        """
-        Forward an LSA packet to all neighbors.
-
-        Args:
-            packet (dict): The LSA packet to forward.
-            sender_ip (str): The IP address of the sender.
-        """
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        packet_data = json.dumps(packet).encode("utf-8")
-        for interface in self.__interfaces:
-            if "broadcast" in interface:
+            for neighbor_id, ip in self._neighbors_ip.items():
                 try:
-                    sock.sendto(packet_data, (interface["broadcast"], 5000))
-                    print(f"Forwarded LSA from {packet['router_id']} to {interface['broadcast']}")
+                    sock.sendto(message, (ip, self._PORT))
+                    formated_printf(f"LSA packet sent to {ip} [{neighbor_id}]")
                 except Exception as e:
-                    print(f"[ERROR] Failed to forward LSA to {interface['broadcast']}: {e}")
+                    formated_printf(f"Error sending to [{neighbor_id}]: {e}")
 
-    def start(self) -> None:
+            time.sleep(self._interval)
+
+    def forward_to_neighbors(self, packet: dict, sender_ip: str):
         """
-        Start the LSA packet sender in a separate thread.
+        Forwards received LSA packets to all neighbors except the original sender.
+
+        Args: 
+            packet (dict): LSA packet in dictionary format
+            sender_ip (str): IP of the packet sender
         """
-        thread = threading.Thread(target=self.__send_lsa, daemon=True)
-        thread.start()
+        sock = create_socket()
+        message = json.dumps(packet).encode("utf-8")
 
-class NeighborManager:
-    """
-    Manages neighbor discovery and LSA processing for the router.
+        # Create list of neighbors to receive the packet (excluding sender)
+        neighbors_list = [
+            (neighbor_id, ip) for neighbor_id, ip in self._neighbors_ip.items() if ip != sender_ip]
 
-    Attributes:
-        __router_id (str): The identifier of the router.
-        __lsa_sender (LSASender): The LSASender instance for forwarding LSAs.
-        __lsdb (LSDB): The Link State Database instance.
-        __neighbors_detected (dict): Dictionary of detected neighbors and their costs.
-        __neighbors_recognized (dict): Dictionary of recognized neighbors and their IP addresses.
-    """
+        for neighbor_id, ip in neighbors_list:
+            try:
+                sock.sendto(message, (ip, self._PORT))
+                formated_printf(f"LSA packet forwarded to {ip} [{neighbor_id}]")
+            except Exception as e:
+                formated_printf(f"Error forwarding to [{neighbor_id}]: {e}")
 
-    def __init__(self, router_id: str, lsa_sender: LSASender, lsdb: LSDB) -> None:
+    def start(self):
         """
-        Initialize the NeighborManager with router-specific data.
-
-        Args:
-            router_id (str): The identifier of this router.
-            lsa_sender (LSASender): The LSASender instance for forwarding LSAs.
-            lsdb (LSDB): The Link State Database instance.
+        Starts the LSASender operation if not already started.
         """
-        self.__router_id = router_id
-        self.__lsa_sender = lsa_sender
-        self.__lsdb = lsdb
-        self.__neighbors_detected = lsa_sender._LSASender__neighbors_cost  
-        self.__neighbors_recognized = lsa_sender._LSASender__neighbors_ip  
-
-    def process_hello(self, packet: dict, sender_ip: str) -> None:
-        """
-        Process a received HELLO packet to detect neighbors.
-
-        Args:
-            packet (dict): The HELLO packet containing neighbor information.
-            sender_ip (str): The IP address of the sender.
-        """
-        sender_id = packet["router_id"]
-        known_neighbors = packet["known_neighbors"]
-        cost = self.__get_cost(self.__router_id, sender_id)
-        print(f"[{self.__router_id}] Processing HELLO from {sender_id} with cost {cost}")
-        self.__neighbors_detected[sender_id] = cost
-        if self.__router_id in known_neighbors and sender_id not in self.__neighbors_recognized:
-            self.__neighbors_recognized[sender_id] = sender_ip
-            print(f"[{self.__router_id}] Recognized bidirectional neighbor: {sender_id} at {sender_ip}")
-            self.__lsa_sender.start()
-
-    def process_lsa(self, packet: dict, sender_ip: str) -> None:
-        """
-        Process a received LSA packet and forward it if necessary.
-
-        Args:
-            packet (dict): The LSA packet containing routing information.
-            sender_ip (str): The IP address of the sender.
-        """
-        valid_packet = self.__lsdb.update_lsdb(packet)
-        if valid_packet:
-            self.__lsa_sender.forward_to_neighbors(packet, sender_ip)
-
-    def __get_cost(self, router_id: str, neighbor_id: str) -> int:
-        """
-        Retrieve the link cost to a neighbor from environment variables.
-
-        Args:
-            router_id (str): The identifier of this router.
-            neighbor_id (str): The identifier of the neighbor router.
-
-        Returns:
-            int: The cost of the link to the neighbor (default to 1 if not found).
-        """
-        cost = os.getenv(f"CONNECTED_TO_ROUTER_{neighbor_id}")
-        print(f"[{router_id}] Getting cost for {router_id} -> {neighbor_id}: cost={cost}")
-        if cost is None:
-            print(f"[WARNING] No cost found for {router_id} -> {neighbor_id}, defaulting to 1")
-            cost = 1
-        return int(cost)
+        if not self._started:
+            self._started = True
+            sender_thread = threading.Thread(
+                target=self.send_to_neighbors, 
+                daemon=True
+            )
+            sender_thread.start()
 
 class Router:
     """
-    Main router class implementing a link-state routing protocol.
-
+    Represents a network router in a routing protocol simulation.
+    
     Attributes:
-        __router_id (str): The identifier of the router.
-        __port (int): The port number for UDP communication.
-        __buffer_size (int): Buffer size for receiving UDP packets.
-        __interfaces (list): List of network interfaces.
-        __neighbors_detected (dict): Dictionary of detected neighbors and their costs.
-        __neighbors_recognized (dict): Dictionary of recognized neighbors and their IP addresses.
-        __hello_sender (HelloSender): The HelloSender instance for neighbor discovery.
-        __lsdb (LSDB): The Link State Database instance.
-        __lsa_sender (LSASender): The LSASender instance for LSA propagation.
-        __neighbor_manager (NeighborManager): The NeighborManager instance for neighbor handling.
+        _router_id (str): Unique router identifier
+        _interfaces (list): Network interfaces
+        _PORT (int): UDP listening port
+        _discovery (NeighborDiscovery): Discovery packet sender
+        _lsa (LSASender): LSA packet sender
+        _lsdb (LSDB): Link State Database
+        _BUFFER_SIZE (int): Receive buffer size
+        _detected_neighbors (dict): Neighbors detected via Discovery
+        _recognized_neighbors (dict): Bidirectionally recognized neighbors
+        _neighbor_manager (NeighborManager): Neighbor management component
     """
 
-    def __init__(self, router_id: str, port: int = 5000, buffer_size: int = 4096) -> None:
+    def __init__(self, router_id: str, PORT: int = 5000, BUFFER_SIZE: int = 4096):
         """
-        Initialize the Router with its configuration.
+        Initializes a new Router instance.
 
         Args:
-            router_id (str): The identifier of this router.
-            port (int, optional): The port number for UDP communication. Defaults to 5000.
-            buffer_size (int, optional): Buffer size for receiving UDP packets. Defaults to 4096.
+            router_id (str): Unique router identifier
+            PORT (int, optional): UDP listening port (default: 5000)
+            BUFFER_SIZE (int, optional): Maximum receive buffer size (default: 4096)
         """
-        self.__router_id = router_id
-        self.__port = port
-        self.__buffer_size = buffer_size
-        self.__interfaces = self.__list_interfaces()
-        self.__neighbors_detected = {}
-        self.__neighbors_recognized = {}
-        self.__hello_sender = HelloSender(self.__router_id, self.__interfaces, self.__neighbors_detected)
-        self.__lsdb = LSDB(self.__router_id, self.__neighbors_recognized)
-        self.__lsa_sender = LSASender(
-            self.__router_id, self.__neighbors_recognized, self.__neighbors_detected, self.__interfaces, self.__lsdb
+        self._router_id = router_id
+        self._interfaces = self.list_addresses()
+        self._PORT = PORT
+        self._BUFFER_SIZE = BUFFER_SIZE
+        self._detected_neighbors = {}  # Neighbors detected via Discovery
+        self._recognized_neighbors = {}  # Bidirectionally recognized neighbors
+        
+        self._discovery = NeighborDiscovery(
+            self._router_id, self._interfaces, self._detected_neighbors
         )
-        self.__neighbor_manager = NeighborManager(self.__router_id, self.__lsa_sender, self.__lsdb)
 
-    def __list_interfaces(self) -> list:
+        self._lsdb = LSDB(router_id, self._recognized_neighbors)
+        self._lsa = LSASender(
+            self._router_id, self._recognized_neighbors,
+            self._detected_neighbors, self._interfaces, self._lsdb
+        )
+        self._neighbor_manager = NeighborManager(
+            self._router_id, self._lsa, self._lsdb
+        )
+
+    def receive_packets(self):
         """
-        List all network interfaces and their IP addresses.
+        Starts listening for UDP packets on the defined port.
+        Handles Discovery and LSA packets.
+        """
+        sock = create_socket()
+        sock.bind(("", self._PORT))
 
-        Returns:
-            list: A list of dictionaries containing interface details (address, broadcast).
+        while True:
+            try:
+                data, address = sock.recvfrom(self._BUFFER_SIZE)
+                message = data.decode("utf-8")
+                packet = json.loads(message)
+                packet_type = packet.get("type")
+                sender_id = packet.get("router_id")
+                
+                if sender_id != self._router_id:
+                    sender_ip = address[0]
+                    formated_printf(
+                        f"{packet_type} packet received from {sender_ip} [{sender_id}]")
+
+                    if packet_type == "Discovery":
+                        self._neighbor_manager.process_discovery_packet(
+                            packet, sender_ip)
+                    elif packet_type == "LSA":
+                        self._neighbor_manager.process_lsa(
+                            packet, sender_ip)
+
+            except Exception as e:
+                formated_printf(f"Error receiving packet: {e}")
+
+    def list_addresses(self) -> list[dict]:
+        """
+        Lists IP addresses of the system's network interfaces.
+
+        Returns: 
+            list[dict]: List of interface dictionaries with IP addresses 
+                       (and broadcast if applicable). 192.x.x.x addresses
+                       are treated as /24 networks.
         """
         interfaces = psutil.net_if_addrs()
         interfaces_list = []
@@ -445,111 +516,168 @@ class Router:
             if interface.startswith("eth"):
                 for address in addresses:
                     if address.family == socket.AF_INET:
-                        if address.broadcast:
-                            interfaces_list.append({
-                                "address": address.address,
-                                "broadcast": address.broadcast
-                            })
-                        else:
+                        if address.address.startswith("192"):
                             ip = ipaddress.ip_address(address.address)
-                            rede = ipaddress.IPv4Network(f"{ip}/24", strict=False)
-                            interfaces_list.append({"address": f"{rede.network_address}/24"})
+                            network = ipaddress.IPv4Network(
+                                f"{ip}/24", strict=False)
+
+                            interfaces_list.append(
+                                {"address": f"{network.network_address}/24"})
+                        else:
+                            interfaces_list.append(
+                                {"address": address.address,
+                                 "broadcast": address.broadcast}
+                            )
         return interfaces_list
 
-    def send_data_packet(self, destination_id: str, message: str) -> None:
+    def start(self):
         """
-        Send a data packet to a specific destination router.
+        Starts router operation:
+        - Initializes packet listening thread
+        - Starts periodic Discovery packet sending
+        - Maintains process with infinite loop
+        """
+        receiver_thread = threading.Thread(
+            target=self.receive_packets, 
+            daemon=True
+        )
+        receiver_thread.start()
+
+        self._discovery.start()
+
+        failure_thread = threading.Thread(
+            target=self._neighbor_manager.check_failures, 
+            daemon=True
+        )
+        failure_thread.start()
+
+        while True:
+            time.sleep(1)
+
+class NeighborManager:
+    """
+    Class responsible for processing Discovery and LSA packets and managing router neighbors.
+    
+    Attributes:
+        _router_id (str): Unique router identifier
+        _lsa (LSASender): LSA packet sender reference
+        _lsdb (LSDB): Link State Database reference
+        _detected_neighbors (dict): Neighbors detected via Discovery
+        _recognized_neighbors (dict): Bidirectionally recognized neighbors
+        _discovery_timestamps (dict): Timestamps of last Discovery from neighbors
+    """
+
+    def __init__(self, router_id: str, lsa: LSASender, lsdb: LSDB):
+        """
+        Initializes a new NeighborManager instance.
+
+        Args: 
+            router_id (str): Unique router identifier
+            lsa (LSASender): LSA packet sender reference
+            lsdb (LSDB): Link State Database reference
+        """
+        self._router_id = router_id
+        self._lsa = lsa
+        self._lsdb = lsdb
+        self._detected_neighbors = lsa.neighbors_cost
+        self._recognized_neighbors = lsa.neighbors_ip
+        self._discovery_timestamps = {}
+
+    def process_discovery_packet(self, packet: dict, sender_ip: str):
+        """
+        Processes a Discovery packet, recognizing direct neighbors and starting LSA
+        transmission to them if applicable.
+
+        Args: 
+            packet (dict): Discovery packet in dictionary format
+            sender_ip (str): IP of the sending router
+        """
+        sender_id = packet.get("router_id")
+        self._detected_neighbors[sender_id] = self.get_cost(
+            self._router_id, sender_id)
+        neighbors = packet.get("known_neighbors")
+
+        self._discovery_timestamps[sender_id] = packet.get("timestamp")
+
+        # If sender recognizes this router and we haven't registered it yet
+        if (self._router_id in neighbors) and (sender_id not in self._recognized_neighbors):
+            self._recognized_neighbors[sender_id] = sender_ip
+            self._lsa.start()
+
+    def process_lsa(self, packet: dict, sender_ip: str):
+        """
+        Processes an LSA packet, updating the LSDB and forwarding valid packets to neighbors.
+
+        Args: 
+            packet (dict): LSA packet in dictionary format
+            sender_ip (str): IP of the sending router
+        """
+        valid_packet = self._lsdb.update(packet)
+        if valid_packet:
+            self._lsa.forward_to_neighbors(packet, sender_ip)
+
+    def get_cost(self, router_id: str, neighbor_id: str) -> int:
+        """
+        Returns the link cost between this router and a neighbor from environment variables.
 
         Args:
-            destination_id (str): The identifier of the destination router.
-            message (str): The message to send.
+            router_id (str): Unique router identifier
+            neighbor_id (str): Unique neighbor identifier
+
+        Returns:
+            int: Link cost (defaults to 1 if not specified)
         """
-        if destination_id not in self.__lsdb._LSDB__routing:
-            print(f"No route to destination {destination_id}")
-            return
+        cost = os.getenv(f"CONNECTED_TO_ROUTER_{neighbor_id}")
+        if cost is None:
+            cost = 1
+        return int(cost)
 
-        next_hop = self.__lsdb._LSDB__routing[destination_id]
-        if next_hop not in self.__neighbors_recognized:
-            print(f"Next hop {next_hop} not recognized")
-            return
-
-        packet = {
-            "type": "DATA",
-            "router_id": self.__router_id,
-            "destination": destination_id,
-            "message": message,
-            "timestamp": time.time()
-        }
-
-        try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            next_hop_ip = self.__neighbors_recognized[next_hop]
-            sock.sendto(json.dumps(packet).encode("utf-8"), (next_hop_ip, self.__port))
-            print(f"Sent DATA packet to {destination_id} via {next_hop} [{next_hop_ip}]")
-        except Exception as e:
-            print(f"Error sending DATA packet: {e}")
-
-    def __receive_packets(self) -> None:
+    def check_failures(self, hello_interval: int = 10, tolerance: int = 3):
         """
-        Receive and process incoming packets (HELLO, LSA, DATA).
+        Periodically checks if neighbors have stopped sending Discovery packets,
+        detecting potential router failures.
+
+        Args:
+            hello_interval (int, optional): Expected time between Discovery packets (default: 10)
+            tolerance (int, optional): Number of missed intervals before declaring inactive (default: 3)
         """
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.bind(("0.0.0.0", self.__port))
         while True:
-            try:
-                data, addr = sock.recvfrom(self.__buffer_size)
-                message = data.decode("utf-8")
-                packet = json.loads(message)
-                packet_type = packet.get("type")
-                sender_id = packet.get("router_id")
-                if sender_id != self.__router_id:
-                    sender_ip = addr[0]
-                    print(f"Received {packet_type} packet from {sender_ip} [{sender_id}]")
-                    if packet_type == "HELLO":
-                        self.__neighbor_manager.process_hello(packet, sender_ip)
-                    elif packet_type == "LSA":
-                        self.__neighbor_manager.process_lsa(packet, sender_ip)
-                    elif packet_type == "DATA":
-                        destination_id = packet.get("destination")
-                        message = packet.get("message")
-                        print(f"Received DATA packet for {destination_id} with message: {message}")
-                        if destination_id != self.__router_id:
-                            self.send_data_packet(destination_id, message)
-                        else:
-                            print(f"DATA packet reached destination {self.__router_id}: {message}")
-            except Exception as e:
-                print(f"Error receiving packet: {e}")
+            now = time.time()
+            failed_routers = [
+                router_id for router_id, timestamp in self._discovery_timestamps.items() 
+                if (now - timestamp) > (hello_interval * tolerance)
+            ]
 
-    def start(self) -> None:
-        """
-        Start the router by initiating packet receiving and periodic sending tasks.
-        """
-        thread = threading.Thread(target=self.__receive_packets, daemon=True)
-        thread.start()
-        self.__hello_sender.start()
-        
-        time.sleep(10)  # Wait for network convergence
-        
-        destinations = [rid for rid in self.__lsdb._LSDB__routing.keys() if rid != self.__router_id]
-        if destinations:
-            while True:
-                for dest in destinations:
-                    self.send_data_packet(dest, f"Test message from {self.__router_id} to {dest}")
-                    time.sleep(5)
-        else:
-            print("No destinations available for data packet testing")
-            while True:
-                time.sleep(1)
+            for router_id in failed_routers:
+                formated_printf(f"[FAILURE] Router {router_id} considered inactive")
+
+                if router_id in self._detected_neighbors:
+                    del self._detected_neighbors[router_id]
+
+                if router_id in self._recognized_neighbors:
+                    del self._recognized_neighbors[router_id]
+
+                if router_id in self._lsdb._table:
+                    del self._lsdb._table[router_id]
+
+            self._lsdb.recalculate_routes(failed_routers)
+            time.sleep(1)
+
+def main():
+    """
+    Main function to start the router operation.
+    """
+    # Set line buffering for stdout
+    sys.stdout.reconfigure(line_buffering=True)
+
+    # Get container name from environment variable
+    container_name = get_container_name()
+    formated_printf(f"Router {container_name} started.")
+
+    # Start router operation
+    router = Router(container_name)
+    router.start()
+
 
 if __name__ == "__main__":
-    """
-    Main entry point for the router script. Initializes and starts the router.
-    """
-    router_id = os.getenv("CONTAINER_NAME")
-    if not router_id:
-        print("Error: CONTAINER_NAME environment variable not found")
-        sys.exit(1)
-
-    print("Starting router...")
-    router = Router(router_id)
-    router.start()
+    main()

@@ -19,7 +19,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the script
-# COPY host.py .
+COPY host.py /app/host.py
 
 # Run the script
-CMD ["python", "host.py"]
+CMD ["python", "/app/host.py"]

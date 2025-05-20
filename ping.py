@@ -193,5 +193,5 @@ def main():
     test_connectivity(ip_to_container, hosts)
 
 if __name__ == "__main__":
-    # generate_docker_compose("topologies/network_topology_15.json")
+    # generate_docker_compose("topologies/network_topology_5.json")
     main()

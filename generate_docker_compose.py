@@ -115,7 +115,7 @@ def create_router_service(router: str, ip_map: Dict, subnet_cost: Dict, subnet_c
         "build": {"context": ".", "dockerfile": "router/Dockerfile"},
         "container_name": router.lower(),
         "environment": {"CONTAINER_NAME": router.lower()},
-        "volumes": ["./shared:/app"],
+        "volumes": ['./router/router.py:/app/router.py'],
         "networks": {},
         "cap_add": ["NET_ADMIN"],
         "sysctls": ["net.ipv4.ip_forward=1", "net.ipv4.conf.all.accept_redirects=0"
@@ -155,10 +155,10 @@ def create_host_service(host: str, router: str, host_net: str, host_ip: str) -> 
         "environment": [
             f"CONNECTED_TO={router}",
             f"CONTAINER_NAME={host.lower()}",
-            f"GATEWAY_IP={gateway_ip}"  # Add gateway IP
+            f"GATEWAY_IP={gateway_ip}"  
         ],
         "cap_add": ["NET_ADMIN"],
-        "volumes": ["./shared:/app"]
+        "volumes": ['./host/host.py:/app/host.py']
     }
 
 def generate_docker_compose(topology_file: str = "topologies/network_topology.json") -> None:

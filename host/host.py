@@ -42,23 +42,6 @@ def get_host_ip():
             print(f"Error parsing IP from eth0: {e}")
             return None
 
-def get_gateway_ip(host_ip):
-    """
-    Calculates the gateway IP address based on the host's IP.
-    
-    Args:
-        host_ip (str): The host's IP address
-    
-    Returns:
-        str: The calculated gateway IP or None if calculation fails
-    """
-    try:
-        ip_obj = ipaddress.ip_address(host_ip)
-        network = ipaddress.ip_network(f"{host_ip}/24", strict=False)
-        return str(network.network_address + 1)
-    except ValueError as e:
-        print(f"Error calculating gateway: {e}")
-        return None
 
 def configure_gateway(gateway_ip):
     """
@@ -74,7 +57,7 @@ def configure_gateway(gateway_ip):
         subprocess.run(["ip", "route", "del", "default"], check=True, capture_output=True)
     except subprocess.CalledProcessError:
         pass
-    
+ 
     try:
         subprocess.run(["ip", "route", "add", "default", "via", gateway_ip], check=True, capture_output=True)
         print(f"Default gateway configured to {gateway_ip}")
@@ -92,10 +75,11 @@ def main():
 
     try:
         connected_to = os.getenv("CONNECTED_TO")
-        print(f"Environment variables - CONNECTED_TO: {connected_to}")
+        gateway_ip = os.getenv("GATEWAY_IP")  # Get gateway IP from environment
+        print(f"Environment variables - CONNECTED_TO: {connected_to}, GATEWAY_IP: {gateway_ip}")
 
-        if not connected_to:
-            print("Error: Missing environment variables CONNECTED_TO")
+        if not connected_to or not gateway_ip:
+            print("Error: Missing environment variables CONNECTED_TO or GATEWAY_IP")
             return 1
 
         print(f"Host starting... Connected to {connected_to}")
@@ -106,18 +90,12 @@ def main():
             return 1
         print(f"Host IP determined: {host_ip}")
 
-        gateway_ip = get_gateway_ip(host_ip)
-        if not gateway_ip:
-            print("Error: Could not determine gateway IP")
-            return 1
-        print(f"Calculated gateway IP: {gateway_ip}")
-
         if not configure_gateway(gateway_ip):
             return 1
 
         while True:
             print(f"Host {host_ip} is running with gateway {gateway_ip}...")
-            time.sleep(10)
+            time.sleep(15)
 
     except Exception as e:
         print(f"Host failed with error: {e}")
