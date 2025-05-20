@@ -124,11 +124,3 @@ Desenvolvido para o curso de **SISTEMAS DE INFORMAÇÃO** – UFPI (CSHNB)
 Disciplina: *Redes de Computadores II*
 
 ---
-
-Se quiser, posso também:
-
-* Adicionar um diagrama visual da topologia;
-* Incluir um badge de status, como `build passing` ou `versão`;
-* Separar instruções para Linux, Windows e WSL;
-
-É só pedir!
