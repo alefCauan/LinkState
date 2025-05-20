@@ -1,86 +1,134 @@
-# LinkState
+Aqui está uma versão aprimorada e mais personalizada do seu README, com seções mais claras, destaque para diferenciais do projeto, uma linguagem mais envolvente e alguns refinamentos visuais:
 
-Este projeto implementa uma simulação de rede de computadores utilizando Python e Docker, onde os roteadores implementam o Algoritmo de Roteamento por Estado de Enlace (Link State Routing Algorithm).
+---
 
-## Como Executar o Projeto
+# 🛰️ LinkState - Simulador de Roteamento por Estado de Enlace
 
-1. **Pré-requisitos**:
-   - Docker e Docker Compose instalados.
-   - Python >= 3.9 instalado (para scripts auxiliares).
+Este projeto simula uma rede de computadores em ambiente Docker, onde cada roteador executa o algoritmo **Link State Routing** (baseado em Dijkstra). A comunicação entre nós da rede é realizada via **UDP**, e toda a infraestrutura é gerada dinamicamente com Python.
 
-2. **Gerar a topologia da rede**:
-   - Execute o script de geração de topologia:
-     ```bash
-     python3 generate_topology.py
-     ```
-   - Isso irá criar o arquivo `network_topology.json` com a descrição da topologia.
+> ⚙️ Projeto desenvolvido como parte da disciplina **Redes de Computadores II** – UFPI | Campus CSHNB.
 
-3. **Gerar o docker compose**:
-   - Execute o script de geração do Docker Compose:
-     ```bash
-     python3 generate_docker_compose.py
-     ```
-   - Isso irá criar o arquivo `docker-compose.yml` com a configuração dos containers.
+---
 
-4. **Construir e iniciar os containers**:
-   - Utilize o Docker Compose para subir a infraestrutura:
-     ```bash
-     docker-compose up --build
-     ```
-   - Os containers de roteadores e hosts serão criados conforme a topologia gerada.
+## 🚀 Como Executar o Projeto
 
-5. **Acompanhar logs**:
-   - Os logs dos roteadores e hosts podem ser visualizados pelo Docker Compose ou acessando cada container individualmente.
+### 1. Pré-requisitos
 
-## Justificativa do(s) Protocolo(s) Escolhido(s)
+* [x] Docker + Docker Compose instalados
+* [x] Python ≥ 3.9 (para executar scripts auxiliares)
 
-O protocolo escolhido foi o **UDP** (User Datagram Protocol). O UDP foi escolhido por ser um protocolo leve, sem conexão e com baixa sobrecarga, ideal para o envio frequente de mensagens de controle (como pacotes de descoberta e anúncios de estado de enlace) em ambientes simulados. Como o objetivo principal é a troca rápida de informações de roteamento e a rede simulada é controlada, a confiabilidade do TCP não é necessária, tornando o UDP mais adequado para este cenário.
+### 2. Gerar Topologia da Rede
 
-## Como a Topologia Foi Construída
+```bash
+python3 generate_topology.py
+```
 
-A topologia é gerada automaticamente pelo script `generate_topology.py`, que executa os seguintes passos:
+Gera o arquivo `network_topology.json`, contendo a estrutura da rede (roteadores, hosts e enlaces com custos).
 
-- Define o número de sub-redes (por padrão, 3).
-- Para cada sub-rede, cria 1 roteador e 2 hosts conectados a ele.
-- Os hosts são conectados diretamente ao roteador de sua sub-rede, sem custo de caminho (essas ligações não afetam o cálculo de rotas).
-- Os roteadores são conectados entre si formando uma topologia parcialmente conectada, com pesos aleatórios nas ligações entre roteadores, simulando diferentes custos de enlace.
-- O grafo gerado é garantido como conectado, e a estrutura é salva em um arquivo JSON, que serve de base para a configuração dos containers Docker.
+### 3. Criar Arquivo docker-compose
 
-## Visão Geral
+```bash
+python3 generate_docker_compose.py
+```
 
-A rede consiste em múltiplas sub-redes, cada uma contendo:
-- 2 hosts
-- 1 roteador
+Gera dinamicamente o `docker-compose.yml` baseado na topologia criada.
 
-Os roteadores conectam-se entre si em uma topologia aleatória (parcialmente conectada) e implementam o algoritmo de estado de enlace, mantendo:
-- Banco de Dados de Estado de Enlace (LSDB)
-- Tabela de roteamento atualizada com base no algoritmo de Dijkstra
+### 4. Construir e Subir os Containers
 
-## Principais Funcionalidades
+```bash
+docker-compose up --build
+```
 
-- Roteadores multi-threaded com threads separadas para:
-    - Recepção de pacotes de estado de enlace
-    - Transmissão de pacotes de estado de enlace
-- Containerização Docker para hosts e roteadores
-- Atualização dinâmica das tabelas de roteamento
-- Geração automática e aleatória da topologia
+Todos os roteadores e hosts são iniciados conforme a topologia gerada.
 
-## Tecnologias
+### 5. Monitorar Logs da Rede
 
-- Python: Lógica central da rede
-- Docker: Simulação da infraestrutura de rede
-- Comando `route`: Manutenção das tabelas de roteamento
-- Threading: Execução concorrente nos roteadores
-- Algoritmo de Dijkstra: Cálculo de rotas ótimas
-- Link State Routing Algorithm: Protocolo de roteamento principal
-- Programação de sockets: Comunicação entre roteadores e hosts
+Você pode acompanhar os logs diretamente pelo Docker Compose ou acessar os containers individualmente para depuração detalhada.
 
-## Status do Projeto
+---
 
-Projeto desenvolvido para a disciplina de REDES DE COMPUTADORES II da UFPI - Campus CSHNB.
+## 🌐 Estrutura da Rede
 
-## Demonstração em Vídeo
+* Cada **sub-rede** contém:
 
-[Project demonstration available on YouTube](#)
+  * 🖥️ 2 hosts
+  * 🔁 1 roteador
 
+* Os **roteadores** se conectam entre si de forma aleatória e parcialmente conectada, com **pesos variáveis** (custos de enlace).
 
+* Cada roteador implementa:
+
+  * Banco de Dados de Estado de Enlace (**LSDB**)
+  * Algoritmo de **Dijkstra** para cálculo das melhores rotas
+  * Threads independentes para **envio** e **recepção** de LSAs via UDP
+
+---
+
+## 📡 Por que UDP?
+
+O protocolo escolhido para a comunicação entre roteadores é o **UDP**. Ele é ideal para esse tipo de simulação porque:
+
+* É **leve** e tem **baixa sobrecarga**
+* Não exige conexão prévia (sem handshake)
+* Tolerância à perda de pacotes (ambiente controlado)
+* Maior velocidade para **mensagens frequentes**, como pacotes HELLO e LSAs
+
+---
+
+## 🛠️ Como a Topologia é Gerada
+
+O script `generate_topology.py` executa:
+
+* Geração automática de `N` sub-redes (por padrão, 3)
+* Criação de roteadores e hosts por sub-rede
+* Conexões aleatórias entre roteadores com pesos (custos)
+* Garantia de conectividade entre todos os nós
+* Exportação da topologia no formato JSON
+
+---
+
+## 🔧 Principais Funcionalidades
+
+* ✅ Roteadores com múltiplas threads para recepção/transmissão de pacotes
+* ✅ Atualização **automática e dinâmica** das tabelas de roteamento
+* ✅ Containerização de todos os nós da rede (hosts + roteadores)
+* ✅ Comunicação via sockets UDP
+* ✅ Geração automatizada da rede via scripts Python
+* ✅ Interface modular, permitindo customização da topologia e protocolos
+
+---
+
+## 🧰 Tecnologias Utilizadas
+
+| Tecnologia          | Finalidade                                  |
+| ------------------- | ------------------------------------------- |
+| **Python**          | Scripts de controle e lógica do protocolo   |
+| **Docker**          | Criação dos nós em containers isolados      |
+| **Docker Compose**  | Orquestração dos containers                 |
+| **UDP Sockets**     | Comunicação entre os roteadores             |
+| **Threading**       | Execução paralela de funções nos roteadores |
+| **Dijkstra**        | Algoritmo de cálculo das rotas ótimas       |
+| **`route` command** | Manipulação da tabela de rotas dos hosts    |
+
+---
+
+## 📺 Demonstração em Vídeo
+
+🎥 Em breve: [Acesse a demonstração no YouTube](#)
+
+---
+
+## 📚 Créditos
+
+Desenvolvido para o curso de **SISTEMAS DE INFORMAÇÃO** – UFPI (CSHNB)
+Disciplina: *Redes de Computadores II*
+
+---
+
+Se quiser, posso também:
+
+* Adicionar um diagrama visual da topologia;
+* Incluir um badge de status, como `build passing` ou `versão`;
+* Separar instruções para Linux, Windows e WSL;
+
+É só pedir!
