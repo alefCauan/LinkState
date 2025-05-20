@@ -1,7 +1,3 @@
-Aqui está uma versão aprimorada e mais personalizada do seu README, com seções mais claras, destaque para diferenciais do projeto, uma linguagem mais envolvente e alguns refinamentos visuais:
-
----
-
 # 🛰️ LinkState - Simulador de Roteamento por Estado de Enlace
 
 Este projeto simula uma rede de computadores em ambiente Docker, onde cada roteador executa o algoritmo **Link State Routing** (baseado em Dijkstra). A comunicação entre nós da rede é realizada via **UDP**, e toda a infraestrutura é gerada dinamicamente com Python.
@@ -14,10 +10,22 @@ Este projeto simula uma rede de computadores em ambiente Docker, onde cada rotea
 
 ### 1. Pré-requisitos
 
-* [x] Docker + Docker Compose instalados
-* [x] Python ≥ 3.9 (para executar scripts auxiliares)
+- [x] **Docker**  
+- [x] **Python** ≥ 3.9 (para executar scripts auxiliares)
 
-### 2. Gerar Topologia da Rede
+---
+
+### 2. Criar Ambiente Virtual
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+---
+
+### 3. Gerar Topologia da Rede
+
 
 ```bash
 python3 generate_topology.py
@@ -25,7 +33,7 @@ python3 generate_topology.py
 
 Gera o arquivo `network_topology.json`, contendo a estrutura da rede (roteadores, hosts e enlaces com custos).
 
-### 3. Criar Arquivo docker-compose
+### 4. Criar Arquivo docker-compose
 
 ```bash
 python3 generate_docker_compose.py
@@ -33,7 +41,7 @@ python3 generate_docker_compose.py
 
 Gera dinamicamente o `docker-compose.yml` baseado na topologia criada.
 
-### 4. Construir e Subir os Containers
+### 5. Construir e Subir os Containers
 
 ```bash
 docker-compose up --build
@@ -41,9 +49,14 @@ docker-compose up --build
 
 Todos os roteadores e hosts são iniciados conforme a topologia gerada.
 
-### 5. Monitorar Logs da Rede
+### 6. Monitorar Logs da Rede
 
 Você pode acompanhar os logs diretamente pelo Docker Compose ou acessar os containers individualmente para depuração detalhada.
+
+### 7. Fechar o projeto
+
+```bash
+./down.sh
 
 ---
 
@@ -71,7 +84,7 @@ O protocolo escolhido para a comunicação entre roteadores é o **UDP**. Ele é
 * É **leve** e tem **baixa sobrecarga**
 * Não exige conexão prévia (sem handshake)
 * Tolerância à perda de pacotes (ambiente controlado)
-* Maior velocidade para **mensagens frequentes**, como pacotes HELLO e LSAs
+* Maior velocidade para **mensagens frequentes**, como pacotes Discovery e LSAs
 
 ---
 
@@ -94,7 +107,7 @@ O script `generate_topology.py` executa:
 * ✅ Containerização de todos os nós da rede (hosts + roteadores)
 * ✅ Comunicação via sockets UDP
 * ✅ Geração automatizada da rede via scripts Python
-* ✅ Interface modular, permitindo customização da topologia e protocolos
+* ✅ Interface modular, permitindo customização da topologia 
 
 ---
 
