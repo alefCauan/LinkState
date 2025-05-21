@@ -135,7 +135,7 @@ O script `generate_topology.py` executa:
 
 ## 📺 Demonstração em Vídeo
 
-🎥 Em breve: [Acesse a demonstração no YouTube](#)
+🎥 [Acesse a demonstração no YouTube](https://youtu.be/sKshAa-S_X8?si=ODwwFF83JLsCj3KX)
 
 ---
 
